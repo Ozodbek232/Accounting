@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load static %}
+    {% block content %}
+<!--begin::Head-->
+<!--end::Head-->
+<!--begin::Body-->
+<body id="kt_body" class="header-fixed header-mobile-fixed subheader-enabled subheader-fixed aside-enabled aside-fixed aside-minimize-hoverable page-loading">
+    <!--begin::Main-->
+    <!--begin::Header Mobile-->
+    {% include "parts/header-mobile.html" %}
+    <!--end::Header Mobile-->
+    <div class="d-flex flex-column flex-root">
+        <!--begin::Page-->
+        <div class="d-flex flex-row flex-column-fluid page">
+            <!--begin::Aside-->
+            {% include "parts/aside.html" %}
+            <!--end::Aside-->
+            <!--begin::Wrapper-->
+            <div class="d-flex flex-column flex-row-fluid wrapper" id="kt_wrapper">
+                <!--begin::Header-->
+                {% include "parts/header.html" %}
+                <!--end::Header-->
+                <!--begin::Content-->
+                <div class="content d-flex flex-column flex-column-fluid" id="kt_content">
+                    <div class="d-flex flex-column-fluid">
+                        <div class="container">
+                        </div>
+                        <!-- .container -->
+                    </div> <!-- .d-flex.flex-column-fluid -->
+                </div>
+                <!--end::Content--> <!--begin::Footer-->
+                {% include "parts/footer.html" %}
+                <!--end::Footer-->
+            </div>
+            <!--end::Wrapper-->
+        </div>
+        <!--end::Page-->
+    </div>
+    <!--end::Main-->
+    <!-- begin::User Panel-->
+    {% include "parts/user-panel.html" %}
+    <!--begin::Quick Cart-->
+    <!--end::Quick Cart-->
+    <!--begin::Quick Panel-->
+    <!--end::Quick Panel-->
+    <!--begin::Chat Panel-->
+    <!--end::Chat Panel-->
+    <!--begin::Scrolltop-->
+    {% include "parts/scrolltop.html" %}
+    <!--end::Scrolltop-->
+    <!--begin::Sticky Toolbar-->
+    <!--end::Sticky Toolbar-->
+    <!--begin::Demo Panel-->
+    <!--end::Demo Panel-->
+
+    <script>
+let colors = [
+    "symbol-light-success",
+    "symbol-light-danger",
+    "symbol-light-warning",
+    "symbol-light-primary",
+];
+
+let elements = document.querySelectorAll(".symbol-light-success");
+
+elements.forEach((el) => {
+    // Pick a random color class
+    let randomColor = colors[Math.floor(Math.random() * colors.length)];
+    el.classList.replace("symbol-light-success", randomColor);
+});
+</script>
+
+</body>
+<!--end::Body-->
+{% endblock %}
+

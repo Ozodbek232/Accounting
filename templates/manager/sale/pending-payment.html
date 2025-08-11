@@ -1,0 +1,820 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<style>
+.payment-modal .modal-body {
+    padding: 25px;
+}
+.payment-form-group {
+    margin-bottom: 20px;
+}
+.payment-form-group label {
+    font-weight: bold;
+    margin-bottom: 8px;
+    display: block;
+}
+.payment-type-btn {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 15px;
+    border: 2px solid #e4e6ef;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+}
+.payment-type-btn:hover {
+    border-color: #007bff;
+    background: #f8f9ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.payment-type-btn.active {
+    border-color: #007bff;
+    background: #007bff;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+}
+.client-info-section {
+    display: none;
+    margin-top: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+.sale-status-pending {
+    color: #ffa800;
+    background: #fff8dd;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+.sale-status-paid {
+    color: #1bc5bd;
+    background: #c9f7f5;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+.sale-status-partial {
+    color: #3699ff;
+    background: #e1f0ff;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+.overdue-row {
+    background-color: #fff5f5 !important;
+    border-left: 3px solid #f56565;
+}
+.due-soon-row {
+    background-color: #fffbf0 !important;
+    border-left: 3px solid #f6ad55;
+}
+.payment-amount-input {
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+}
+.quick-amount-btn {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 20px;
+    padding: 5px 15px;
+    margin: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.quick-amount-btn:hover {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+</style>
+
+<div class="d-flex flex-column flex-root">
+    <div class="d-flex flex-row flex-column-fluid page">
+        {% include 'parts/aside.html' %}
+        
+        <div class="d-flex flex-column flex-row-fluid wrapper" id="kt_wrapper">
+          <br><br><br>
+            {% include 'parts/header.html' %}
+            
+            <div class="content d-flex flex-column flex-column-fluid" id="kt_content">
+                <div class="d-flex flex-column-fluid">
+                    <div class="container">
+                        
+                        <!-- Statistika kartlari -->
+                        <div class="row mb-6">
+                            <div class="col-xl-2">
+                                <div class="card card-custom bg-danger card-stretch gutter-b">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div>
+                                                <span class="text-white font-weight-bold font-size-h6">Kutilayotgan</span>
+                                                <span class="text-white font-weight-bolder font-size-h2 mt-3" id="total-pending">0 UZS</span>
+                                            </div>
+                                            <i class="ki ki-wallet icon-3x text-white-50"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-xl-2">
+                                <div class="card card-custom bg-danger card-stretch gutter-b">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div>
+                                                <span class="text-white font-weight-bold font-size-h6">qarz</span>
+                                                <span class="text-white font-weight-bolder font-size-h2 mt-3" id="total-credit">0 UZS</span>
+                                            </div>
+                                            <i class="ki ki-wallet icon-3x text-white-50"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+ 
+                            <div class="col-xl-2">
+                                <div class="card card-custom bg-success card-stretch gutter-b">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div>
+                                                <span class="text-white font-weight-bold font-size-h6">Bugun To'langan</span>
+                                                <span class="text-white font-weight-bolder font-size-h2 mt-3" id="today-payments">0 UZS</span>
+                                            </div>
+                                            <i class="ki ki-check-circle icon-3x text-white-50"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-xl-3">
+                                <div class="card card-custom bg-warning card-stretch gutter-b">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div>
+                                                <span class="text-white font-weight-bold font-size-h6">Kutilayotgan</span>
+                                                <span class="text-white font-weight-bolder font-size-h2 mt-3" id="pending-count">0</span>
+                                            </div>
+                                            <i class="ki ki-time icon-3x text-white-50"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-xl-3">
+                                <div class="card card-custom bg-info card-stretch gutter-b">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div>
+                                                <span class="text-white font-weight-bold font-size-h6">Muddati O'tgan</span>
+                                                <span class="text-white font-weight-bolder font-size-h2 mt-3" id="overdue-count">0</span>
+                                            </div>
+                                            <i class="ki ki-exclamation-triangle icon-3x text-white-50"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Asosiy jadval -->
+                        <div class="card card-custom">
+                            <div class="card-header flex-wrap border-0 pt-6 pb-0">
+                                <div class="card-title">
+                                    <h3 class="card-label">
+                                        <i class="ki ki-time text-warning mr-2"></i>
+                                        Kutilayotgan To'lovlar
+                                    </h3>
+                                </div>
+                                <div class="card-toolbar">
+                                    <!-- Filtrlar -->
+                                    <div class="dropdown dropdown-inline mr-2">
+                                        <button type="button" class="btn btn-light-primary font-weight-bolder dropdown-toggle" data-toggle="dropdown">
+                                            <i class="ki ki-funnel mr-1"></i>Status
+                                        </button>
+                                        <div class="dropdown-menu">
+                                            <a class="dropdown-item" href="#" onclick="filterByStatus('')">
+                                                <i class="ki ki-check text-success mr-2"></i>Hammasi
+                                            </a>
+                                            <a class="dropdown-item" href="#" onclick="filterByStatus('pending')">
+                                                <i class="ki ki-time text-warning mr-2"></i>Kutilayotgan
+                                            </a>
+                                            <a class="dropdown-item" href="#" onclick="filterByStatus('partial')">
+                                                <i class="ki ki-loading text-info mr-2"></i>Qisman
+                                            </a>
+                                        </div>
+                                    </div>
+                                    
+                                    <input type="text" class="form-control mr-2" id="client-search" 
+                                           placeholder="Mijoz qidirish..." style="width: 200px;">
+                                    <input type="date" class="form-control mr-2" id="date-filter" style="width: 150px;">
+                                    
+                                    <button class="btn btn-light-success" onclick="loadSales()" title="Yangilash">
+                                        <i class="ki ki-refresh"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-head-custom table-vertical-center">
+                                        <thead>
+                                            <tr>
+                                                <th class="pl-0 text-center">
+                                                    <span class="text-muted font-weight-bold font-size-sm">ID</span>
+                                                </th>
+                                                <th class="pl-0">
+                                                    <span class="text-muted font-weight-bold font-size-sm">MIJOZ</span>
+                                                </th>
+                                                <th class="pl-0">
+                                                    <span class="text-muted font-weight-bold font-size-sm">SANA</span>
+                                                </th>
+                                                <th class="pl-0">
+                                                    <span class="text-muted font-weight-bold font-size-sm">JAMI</span>
+                                                </th>
+                                                <th class="pl-0">
+                                                    <span class="text-muted font-weight-bold font-size-sm">TO'LANGAN</span>
+                                                </th>
+                                                <th class="pl-0">
+                                                    <span class="text-muted font-weight-bold font-size-sm">QOLGAN</span>
+                                                </th>
+                                                <th class="pl-0">
+                                                    <span class="text-muted font-weight-bold font-size-sm">STATUS</span>
+                                                </th>
+                                                <th class="pr-0 text-right">
+                                                    <span class="text-muted font-weight-bold font-size-sm">AMAL</span>
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="sales-table-body">
+                                            <!-- JavaScript orqali to'ldiriladi -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <!-- Loading spinner -->
+                                <div id="loading-spinner" class="text-center py-5" style="display: none;">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="sr-only">Yuklanmoqda...</span>
+                                    </div>
+                                    <div class="text-muted mt-2">Ma'lumotlar yuklanmoqda...</div>
+                                </div>
+                                
+                                <!-- Ma'lumot topilmadi -->
+                                <div id="no-data-message" class="text-center py-5" style="display: none;">
+                                    <i class="ki ki-information icon-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">Kutilayotgan to'lovlar yo'q</h5>
+                                    <p class="text-muted">Barcha to'lovlar amalga oshirilgan yoki filtr bo'yicha ma'lumot topilmadi.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+            
+            {% include 'parts/footer.html' %}
+        </div>
+    </div>
+</div>
+
+<!-- To'lov Modal -->
+<div class="modal fade payment-modal" id="paymentModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title">
+                    <i class="ki ki-wallet text-primary mr-2"></i>
+                    To'lov Qo'shish
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Sotuv ma'lumotlari -->
+                <div class="alert alert-light-info d-flex align-items-center p-5 mb-5">
+                    <div class="d-flex flex-column flex-grow-1 mr-2">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <span class="text-dark-75 font-weight-bolder font-size-lg">Sotuv: </span>
+                                <span class="font-weight-bold font-size-lg" id="modal-sale-id"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <span class="text-dark-75 font-weight-bolder">Sana: </span>
+                                <span id="modal-sale-date"></span>
+                            </div>
+                            <div class="col-md-6 mt-2">
+                                <span class="text-dark-75 font-weight-bolder">Jami narx: </span>
+                                <span class="text-success font-weight-bold" id="modal-total-price"></span> UZS
+                            </div>
+                            <div class="col-md-6 mt-2">
+                                <span class="text-dark-75 font-weight-bolder">Kutilayotgan To'lov: </span>
+                                <span class="text-danger font-weight-bold font-size-lg" id="modal-remaining-amount"></span> UZS
+                            </div>
+                        </div>
+                    </div>
+                    <span class="svg-icon svg-icon-3x svg-icon-info">
+                        <i class="ki ki-information icon-2x"></i>
+                    </span>
+                </div>
+                
+                <!-- To'lov turi tanlash -->
+                <div class="payment-form-group">
+                    <label class="font-size-h6 font-weight-bolder text-dark-75 mb-5">To'lov turini tanlang:</label>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <button type="button" class="payment-type-btn" data-payment-type="cash">
+                                <i class="ki ki-wallet icon-2x text-success mb-2"></i><br>
+                                <strong>Naqd Pul</strong>
+                                <br><small class="text-muted">Kassadan naqd to'lov</small>
+                            </button>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <button type="button" class="payment-type-btn" data-payment-type="card">
+                                <i class="ki ki-credit-cart icon-2x text-primary mb-2"></i><br>
+                                <strong>Plastik Karta</strong>
+                                <br><small class="text-muted">Terminal orqali</small>
+                            </button>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <button type="button" class="payment-type-btn" data-payment-type="credit">
+                                <i class="ki ki-time icon-2x text-warning mb-2"></i><br>
+                                <strong>Nasiya</strong>
+                                <br><small class="text-muted">Keyinroq to'lash</small>
+                            </button>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <button type="button" class="payment-type-btn" data-payment-type="bank_transfer">
+                                <i class="ki ki-bank icon-2x text-info mb-2"></i><br>
+                                <strong>Bank O'tkazmasi</strong>
+                                <br><small class="text-muted">Hisobdan hisobga</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- To'lov miqdori -->
+                <div class="payment-form-group">
+                    <label for="payment-amount" class="font-weight-bolder">To'lov miqdori (UZS):</label>
+                    <div class="input-group input-group-lg">
+                        <input type="number" class="form-control payment-amount-input" id="payment-amount" 
+                               placeholder="0" min="1" step="1000">
+                        <div class="input-group-append">
+                            <span class="input-group-text">UZS</span>
+                        </div>
+                    </div>
+                    <div class="d-flex mt-2">
+                        <small class="text-muted mr-3">Maksimal: <span class="font-weight-bold" id="max-payment-amount">0</span> UZS</small>
+                        <button type="button" class="quick-amount-btn" onclick="setMaxAmount()">
+                            <small>To'liq to'lash</small>
+                        </button>
+                    </div>
+                    
+                    <!-- Tezkor miqdorlar -->
+                    <div class="mt-3" id="quick-amounts">
+                        <small class="text-muted">Tezkor:</small>
+                        <div class="d-flex flex-wrap mt-2" id="quick-amount-buttons">
+                            <!-- JavaScript orqali to'ldiriladi -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- To'lov tavsifi -->
+                <div class="payment-form-group">
+                    <label for="payment-description">Tavsif (ixtiyoriy):</label>
+                    <textarea class="form-control" id="payment-description" rows="3" 
+                              placeholder="To'lov haqida qo'shimcha ma'lumot..."></textarea>
+                </div>
+                
+                <!-- Mijoz ma'lumotlari (faqat nasiya uchun) -->
+                <div class="client-info-section" id="client-info-section">
+                    <h6 class="font-weight-bolder text-primary mb-3">
+                        <i class="ki ki-user-ok mr-2"></i>Mijoz Ma'lumotlari
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="client-name" class="font-weight-bold">To'liq Ismi: <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="client-name" 
+                                   placeholder="Mijoz to'liq ismi">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="client-phone" class="font-weight-bold">Telefon raqami: <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="client-phone" 
+                                   placeholder="+998 XX XXX XX XX">
+                        </div>
+                        <div class="col-md-12 mt-3">
+                            <label for="client-due-date" class="font-weight-bold">To'lov muddati:</label>
+                            <input type="date" class="form-control" id="client-due-date">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light font-weight-bold" data-dismiss="modal">
+                    <i class="ki ki-close mr-1"></i>Bekor qilish
+                </button>
+                <button type="button" class="btn btn-primary font-weight-bold" id="save-payment-btn" onclick="savePayment()">
+                    <i class="ki ki-check mr-1"></i>
+                    To'lovni Saqlash
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const csrfToken = '{{ csrf_token }}';
+    let selectedPaymentType = '';
+    let selectedSaleId = null;
+
+    loadStatistics();
+    loadSales();
+
+    // Qidiruv va filtrlar
+    document.getElementById('client-search').addEventListener('input', function() {
+        clearTimeout(this.searchTimeout);
+        this.searchTimeout = setTimeout(() => {
+            loadSales();
+        }, 500);
+    });
+    
+    document.getElementById('date-filter').addEventListener('change', loadSales);
+
+    function loadStatistics() {
+        fetch('/payment-statistics-api/')
+            .then(response => response.json())
+            .then(data => {
+                // Views'dan kelayotgan to'g'ri maydonlarni ishlatish
+                document.getElementById('total-pending').textContent = data.total_pending.toLocaleString() + ' UZS';
+                document.getElementById('total-credit').textContent = data.total_credit.toLocaleString() + ' UZS';
+                document.getElementById('today-payments').textContent = data.today_payments.toLocaleString() + ' UZS';
+                document.getElementById('pending-count').textContent = data.pending_count + data.partial_count;
+                document.getElementById('overdue-count').textContent = data.overdue_count;
+            })
+            .catch(error => console.error('Statistika yuklanmadi:', error));
+    }
+
+    function loadSales() {
+        const clientFilter = document.getElementById('client-search').value;
+        const dateFilter = document.getElementById('date-filter').value;
+        const statusFilter = localStorage.getItem('status_filter') || '';
+
+        const params = new URLSearchParams({
+            client: clientFilter,
+            date: dateFilter,
+            status: statusFilter
+        });
+
+        document.getElementById('loading-spinner').style.display = 'block';
+        document.getElementById('no-data-message').style.display = 'none';
+        document.getElementById('sales-table-body').innerHTML = '';
+
+        fetch(`/pending-payments-api/?${params}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading-spinner').style.display = 'none';
+                renderSalesTable(data.sales);
+            })
+            .catch(error => {
+                document.getElementById('loading-spinner').style.display = 'none';
+                console.error('Ma\'lumotlar yuklanmadi:', error);
+                alert('Ma\'lumotlar yuklanishda xatolik yuz berdi!');
+            });
+    }
+
+    function renderSalesTable(sales) {
+        const tbody = document.getElementById('sales-table-body');
+        const noDataMsg = document.getElementById('no-data-message');
+        tbody.innerHTML = '';
+
+        if (sales.length === 0) {
+            noDataMsg.style.display = 'block';
+            return;
+        }
+
+        noDataMsg.style.display = 'none';
+        const today = new Date();
+
+        sales.forEach(sale => {
+            const row = document.createElement('tr');
+            
+            let statusClass = 'sale-status-pending';
+            let statusText = 'Kutilmoqda';
+            let rowClass = '';
+            
+            if (sale.status === 'paid') {
+                statusClass = 'sale-status-paid';
+                statusText = 'To\'langan';
+            } else if (sale.status === 'partial') {
+                statusClass = 'sale-status-partial';
+                statusText = 'Qisman';
+            }
+
+            // Muddat tekshiruvi
+            if (sale.client_due_date && sale.status !== 'paid') {
+                const dueDate = new Date(sale.client_due_date);
+                const diffTime = dueDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays < 0) {
+                    rowClass = 'overdue-row';
+                } else if (diffDays <= 3) {
+                    rowClass = 'due-soon-row';
+                }
+            }
+
+            row.className = rowClass;
+            row.innerHTML = `
+                <td class="text-center">
+                    <span class="font-weight-bolder text-primary font-size-lg">#${sale.id}</span>
+                </td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="symbol symbol-45 symbol-light-primary mr-4">
+                            <span class="symbol-label">
+                                <i class="ki ki-user-ok icon-lg text-primary"></i>
+                            </span>
+                        </div>
+                        <div>
+                            <div class="font-weight-bolder text-dark-75 font-size-lg">${sale.client_name}</div>
+                            ${sale.client_phone ? `<div class="text-muted">${sale.client_phone}</div>` : ''}
+                            ${sale.client_due_date ? `<div class="text-muted"><i class="ki ki-calendar mr-1"></i>Muddat: ${new Date(sale.client_due_date).toLocaleDateString('uz-UZ')}</div>` : ''}
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="font-weight-bolder">${sale.date.split(' ')[0]}</div>
+                    <div class="text-muted">${sale.date.split(' ')[1]}</div>
+                </td>
+                <td>
+                    <span class="font-weight-bolder font-size-lg text-dark-75">${sale.total_price.toLocaleString()} UZS</span>
+                </td>
+                <td>
+                    <span class="font-weight-bolder text-success">${sale.paid_amount.toLocaleString()} UZS</span>
+                    ${sale.paid_amount > 0 ? `<div class="progress mt-2" style="height: 4px;"><div class="progress-bar bg-success" style="width: ${(sale.paid_amount/sale.total_price*100)}%"></div></div>` : ''}
+                </td>
+                <td>
+                    <span class="font-weight-bolder text-danger font-size-lg">${sale.pending_amount.toLocaleString()} UZS</span>
+                </td>
+                <td>
+                    <span class="${statusClass}">${statusText}</span>
+                </td>
+                <td class="text-right pr-0">
+                    ${sale.status !== 'paid' ? 
+                        `<button class="btn btn-sm btn-primary font-weight-bolder" onclick="openPaymentModal(${sale.id})">
+                            <i class="ki ki-plus mr-1"></i>To'lov
+                         </button>` : 
+                        `<span class="label label-success label-dot mr-2"></span>
+                         <span class="font-weight-bold text-success">Tugallangan</span>`
+                    }
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // Status bo'yicha filtr
+    window.filterByStatus = function(status) {
+        localStorage.setItem('status_filter', status);
+        loadSales();
+    };
+
+    // To'lov modalini ochish
+    window.openPaymentModal = function(saleId) {
+        selectedSaleId = saleId;
+        
+        fetch(`/create-payment-modal/${saleId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const sale = data.sale;
+                    
+                    document.getElementById('modal-sale-id').textContent = '#' + sale.id;
+                    document.getElementById('modal-sale-date').textContent = sale.date;
+                    document.getElementById('modal-total-price').textContent = sale.total_price.toLocaleString();
+                    // pending_amount'ni qarz sifatida ko'rsatish
+                    document.getElementById('modal-remaining-amount').textContent = sale.pending_amount.toLocaleString();
+                    document.getElementById('max-payment-amount').textContent = sale.pending_amount.toLocaleString();
+                    document.getElementById('payment-amount').setAttribute('max', sale.pending_amount);
+                    
+                    document.getElementById('client-name').value = sale.client_name;
+                    document.getElementById('client-phone').value = sale.client_phone;
+                    document.getElementById('client-due-date').value = sale.client_due_date;
+                    
+                    // Tezkor miqdorlar - pending_amount asosida
+                    generateQuickAmounts(sale.pending_amount);
+                    
+                    $('#paymentModal').modal('show');
+                } else {
+                    alert('Xatolik: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Modal ochilmadi:', error);
+                alert('Xatolik yuz berdi');
+            });
+    };
+
+    // Tezkor miqdorlar generatsiya qilish - pending_amount asosida
+    function generateQuickAmounts(pendingAmount) {
+        const quickButtonsContainer = document.getElementById('quick-amount-buttons');
+        quickButtonsContainer.innerHTML = '';
+        
+        const amounts = [
+            100000, 200000, 500000, 1000000
+        ].filter(amount => amount <= pendingAmount);
+        
+        amounts.forEach(amount => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'quick-amount-btn';
+            btn.textContent = amount.toLocaleString() + ' UZS';
+            btn.onclick = () => {
+                document.getElementById('payment-amount').value = amount;
+            };
+            quickButtonsContainer.appendChild(btn);
+        });
+    }
+
+    // To'liq miqdor o'rnatish
+    window.setMaxAmount = function() {
+        const maxAmount = document.getElementById('payment-amount').getAttribute('max');
+        document.getElementById('payment-amount').value = maxAmount;
+    };
+
+    // To'lov turi tanlash
+    document.querySelectorAll('.payment-type-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.payment-type-btn').forEach(b => b.classList.remove('active'));
+            
+            this.classList.add('active');
+            selectedPaymentType = this.getAttribute('data-payment-type');
+            
+            // Nasiya bo'lsa mijoz ma'lumotlarini ko'rsatish
+            const clientSection = document.getElementById('client-info-section');
+            if (selectedPaymentType === 'credit') {
+                clientSection.style.display = 'block';
+            } else {
+                clientSection.style.display = 'none';
+            }
+        });
+    });
+
+    window.savePayment = function() {
+        if (!selectedPaymentType) {
+            alert('To\'lov turini tanlang!');
+            return;
+        }
+
+        const amount = parseFloat(document.getElementById('payment-amount').value) || 0;
+        if (amount <= 0) {
+            alert('To\'lov miqdorini kiriting!');
+            return;
+        }
+
+        const maxAmount = parseFloat(document.getElementById('payment-amount').getAttribute('max'));
+        if (amount > maxAmount) {
+            alert(`To'lov miqdori ${maxAmount.toLocaleString()} UZS dan ko'p bo'lmasligi kerak!`);
+            return;
+        }
+
+        if (selectedPaymentType === 'credit') {
+            const clientName = document.getElementById('client-name').value.trim();
+            const clientPhone = document.getElementById('client-phone').value.trim();
+            
+            if (!clientName || !clientPhone) {
+                alert('Nasiya uchun mijoz ismi va telefon raqami kiritilishi kerak!');
+                return;
+            }
+        }
+
+        const saveBtn = document.getElementById('save-payment-btn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="spinner-border spinner-border-sm mr-2"></i>Saqlanmoqda...';
+
+        const paymentData = {
+            payment_type: selectedPaymentType,
+            amount: amount,
+            description: document.getElementById('payment-description').value.trim(),
+            client_name: document.getElementById('client-name').value.trim(),
+            client_phone: document.getElementById('client-phone').value.trim(),
+            client_due_date: document.getElementById('client-due-date').value || null
+        };
+
+        fetch(`/add-payment/${selectedSaleId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(paymentData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Muvaffaqiyatli xabar
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+
+                Toast.fire({
+                    icon: 'success',
+                    title: 'To\'lov muvaffaqiyatli qo\'shildi!',
+                    text: `${amount.toLocaleString()} UZS ${getPaymentTypeText(selectedPaymentType)} orqali to'landi`
+                });
+
+                $('#paymentModal').modal('hide');
+                loadSales();
+                loadStatistics();
+                
+                // Formani tozalash
+                resetPaymentForm();
+            } else {
+                alert('Xatolik: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('To\'lov saqlanmadi:', error);
+            alert('Xatolik yuz berdi!');
+        })
+        .finally(() => {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="ki ki-check mr-1"></i> To\'lovni Saqlash';
+        });
+    };
+
+    // To'lov turi matnini olish
+    function getPaymentTypeText(paymentType) {
+        const types = {
+            'cash': 'Naqd',
+            'card': 'Karta',
+            'credit': 'Nasiya',
+            'bank_transfer': 'Bank o\'tkazmasi'
+        };
+        return types[paymentType] || paymentType;
+    }
+
+    // Formani tozalash
+    function resetPaymentForm() {
+        document.getElementById('payment-amount').value = '';
+        document.getElementById('payment-description').value = '';
+        document.querySelectorAll('.payment-type-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('client-info-section').style.display = 'none';
+        selectedPaymentType = '';
+        selectedSaleId = null;
+    }
+
+    // Modal yopilganda formani tozalash
+    $('#paymentModal').on('hidden.bs.modal', function() {
+        resetPaymentForm();
+    });
+
+    // Enter klavishasi bosilganda to'lov saqlash
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && $('#paymentModal').hasClass('show')) {
+            e.preventDefault();
+            savePayment();
+        }
+    });
+
+    // Telefon raqami formatini o'zgartirish
+    document.getElementById('client-phone').addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.startsWith('998')) {
+            value = '+' + value;
+        } else if (value.length > 0) {
+            value = '+998' + value;
+        }
+        e.target.value = value;
+    });
+
+    // Miqdor kiritishda vergulni qo'shish
+    document.getElementById('payment-amount').addEventListener('input', function(e) {
+        const value = parseFloat(e.target.value) || 0;
+        if (value > 0) {
+            // Live formatting qilish
+            const formatted = value.toLocaleString();
+            // Input'da raqamni saqlash, leqin ko'rsatishda formatli ko'rsatish uchun
+        }
+    });
+});
+</script>
+
+<!-- SweetAlert2 CDN (agar mavjud bo'lmasa) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.7.32/sweetalert2.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.7.32/sweetalert2.min.css">
+
+{% endblock %}

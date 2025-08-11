@@ -1,0 +1,522 @@
+{% extends 'base.html' %} {% load static %} {% block content %}
+<!DOCTYPE html>
+<style>
+.product-card {
+    width: 100%;
+    max-width: 600px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+}
+.product-card:hover {
+    background: #f5f5f5;
+}
+.product-title {
+    display: inline;
+    font-weight: bold;
+    font-size: 16px;
+}
+.product-price {
+    float: right;
+    font-size: 16px;
+}
+.product-quantity {
+    color: #888;
+    font-size: 14px;
+}
+.discount-input {
+    width: 80px;
+    height: 30px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    text-align: center;
+    margin-left: 10px;
+}
+.discount-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-left: 5px;
+}
+.discount-btn:hover {
+    background: #0056b3;
+}
+.original-price {
+    text-decoration: line-through;
+    color: #888;
+    font-size: 12px;
+}
+.discounted-price {
+    color: #28a745;
+    font-weight: bold;
+}
+.cart-summary {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+    border: 1px solid #dee2e6;
+}
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+.summary-row.total {
+    font-weight: bold;
+    font-size: 18px;
+    border-top: 2px solid #007bff;
+    padding-top: 10px;
+    color: #007bff;
+}
+
+/* Mobil moslashuv */
+@media (max-width: 768px) {
+    .align-items-center.col-lg-3 {
+        width: 100% !important;
+        margin-left: 0 !important;
+    }
+    #search-input {
+        width: 100% !important;
+    }
+    .product-card {
+        flex-direction: column;
+        text-align: left;
+    }
+    table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    .cart-summary {
+        font-size: 14px;
+        padding: 15px;
+    }
+    .summary-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .summary-row.total {
+        font-size: 16px;
+    }
+    .product-title {
+        font-size: 14px;
+    }
+    .product-price {
+        font-size: 14px;
+        float: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .discount-input {
+        width: 60px;
+        height: 25px;
+    }
+    .discount-btn {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+    #save-sale-btn {
+        width: 100%;
+        font-size: 16px;
+        padding: 10px;
+    }
+}
+</style>
+
+
+<html lang="en">
+	<body id="kt_body" class="header-fixed header-mobile-fixed subheader-enabled subheader-fixed aside-enabled aside-fixed aside-minimize-hoverable page-loading">
+		<!--begin::Header Mobile-->
+    {% include 'parts/header-mobile.html' %}	
+		<!--end::Header Mobile-->
+		<div class="d-flex flex-column flex-root">
+			<!--begin::Page-->
+			<div class="d-flex flex-row flex-column-fluid page">
+				<!--begin::Aside-->
+        {% include 'parts/aside.html' %}	
+				<!--end::Aside-->
+				<!--begin::Wrapper-->
+				<div class="d-flex flex-column flex-row-fluid wrapper" id="kt_wrapper">
+					<!--begin::Header-->
+          {% include 'parts/header.html' %}
+					<!--end::Header-->
+					<!--begin::Content-->
+					<div class="content d-flex flex-column flex-column-fluid" id="kt_content">
+						<!--begin::Entry-->
+						<div class="d-flex flex-column-fluid">
+							<!--begin::Container-->
+							<div class="container">
+								<div class="card card-custom gutter-b">
+									<div class="align-items-center col-lg-3 col-md-9 col-sm-12 mb-lg-0 mb-6 ml-10 mt-5">
+										<input type="text" style="width:600px; border-radius:10px; height:40px" class="form-control" id="search-input" placeholder="Mahsulotni qidiring..." autocomplete="off">
+										<div id="search-results" style="margin-top: 10px;"></div>
+									</div>
+									<!--begin::Header-->
+									<div class="card-header flex-wrap border-0 pt-6 pb-0">
+										<h3 class="card-title align-items-start flex-column">
+											<span class="card-label font-weight-bolder font-size-h3 text-dark">Savdo Korzinasi</span>
+										</h3>
+										<div class="card-toolbar">
+											<div class="dropdown dropdown-inline">
+												<h1 style="font-size:30px; font-weight:bold; color: #888;">#132</h1>	
+											</div>
+										</div>
+									</div>
+									<!--end::Header-->
+									<div class="card-body">
+										<!--begin::Shopping Cart-->
+										<div class="table-responsive">
+											<table class="table">
+												<!--begin::Cart Header-->
+												<thead>
+													<tr>
+														<th>Mahsulot</th>
+														<th class="text-center">Miqdor</th>
+														<th class="text-center">Narx</th>
+														<th class="text-center">Chegirma</th>
+														<th class="text-right">Jami</th>
+														<th></th>
+													</tr>
+												</thead>
+												<!--end::Cart Header-->
+												<tbody id="cart-items-body">
+													<!-- JavaScript orqali dinamik to'ldiriladi -->
+												</tbody>
+											</table>
+										</div>
+										<!--end::Shopping Cart-->
+										
+										<!-- Cart Summary -->
+										<div class="cart-summary">
+											<div class="summary-row">
+												<span>Jami narx:</span>
+												<span id="total-price">0 UZS</span>
+											</div>
+											<div class="summary-row">
+												<span>Jami chegirma:</span>
+												<span id="total-discount" style="color: #dc3545;">0 UZS</span>
+											</div>
+											<div class="summary-row total">
+												<span>To'lanishi kerak:</span>
+												<span id="final-price">0 UZS</span>
+											</div>
+											
+											<!-- Sotuvni saqlash tugmasi -->
+											<div class="text-right mt-3">
+												<button id="save-sale-btn" class="btn btn-success btn-lg" style="min-width: 200px;" onclick="saveSale()">
+													<i class="ki ki-check icon-sm"></i>
+													Sotuvni Saqlash
+												</button>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							<!--end::Container-->
+						</div>
+						<!--end::Entry-->
+					</div>
+					<!--end::Content-->
+					<!--begin::Footer-->
+          {% include 'parts/footer.html' %}
+					<!--end::Footer-->
+				</div>
+				<!--end::Wrapper-->
+			</div>
+			<!--end::Page-->
+		</div>
+		<!--end::Main-->
+		<!-- begin::User Panel-->
+		<!-- end::User Panel-->
+		<!--begin::Scrolltop-->
+    {% include 'parts/scrolltop.html' %}
+		<!--end::Scrolltop-->
+	</body>
+</html>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const input = document.getElementById("search-input");
+    const resultsBox = document.getElementById("search-results");
+    const cartBody = document.getElementById("cart-items-body");
+    const csrfToken = '{{ csrf_token }}';
+
+    let timeout = null;
+    let cartData = {}; // Korzina ma'lumotlarini saqlash
+
+    // Qidirish funksiyasi
+    input.addEventListener("input", function () {
+        clearTimeout(timeout);
+        const term = input.value.trim();
+
+        if (term.length === 0) {
+            resultsBox.innerHTML = "";
+            return;
+        }
+
+        timeout = setTimeout(() => {
+            fetch(`/search-products/?term=${encodeURIComponent(term)}`)
+                .then(response => response.json())
+                .then(data => {
+                    resultsBox.innerHTML = "";
+
+                    if (data.length === 0) {
+                        resultsBox.innerHTML = "<p style='padding: 5px;'>Hech narsa topilmadi</p>";
+                        return;
+                    }
+
+                    data.forEach(product => {
+                        const card = document.createElement("div");
+                        card.className = "product-card";
+                        card.style.cursor = "pointer";
+
+                        card.innerHTML = `
+                            <div style="display:inline;" class="symbol symbol-40 symbol-light-success">
+                                <img style="display:inline;" class="symbol-label" src="${product.image}">
+                            </div>
+                            <div class="product-price">
+                                ${product.price} UZS
+                                <div class="product-quantity">Miqdor: ${product.amount} dona</div>
+                            </div>
+                            <div class="product-title">${product.name} / ${product.category}</div>
+                        `;
+
+                        card.addEventListener("click", () => {
+                            addToCart(product);
+                            resultsBox.innerHTML = "";
+                            input.value = "";
+                        });
+
+                        resultsBox.appendChild(card);
+                    });
+                })
+                .catch(error => {
+                    console.error("Xatolik:", error);
+                    resultsBox.innerHTML = "<p style='color:red;'>Xatolik yuz berdi</p>";
+                });
+        }, 300);
+    });
+
+    // Korzinaga qo'shish funksiyasi
+    function addToCart(product) {
+        if (cartData[product.id]) {
+            cartData[product.id].quantity += 1;
+        } else {
+            cartData[product.id] = {
+                id: product.id,
+                name: product.name,
+                image: product.image,
+                price: parseFloat(product.price),
+                maxDiscount: product.max_discount,
+                quantity: 1,
+                discount: 0
+            };
+        }
+        updateCartDisplay();
+    }
+
+    // Korzina ko'rinishini yangilash
+    function updateCartDisplay() {
+        cartBody.innerHTML = "";
+        
+        Object.values(cartData).forEach(item => {
+            const row = document.createElement("tr");
+            row.setAttribute("data-product-id", item.id);
+            
+            const discountedPrice = item.price - item.discount;
+            const totalItemPrice = discountedPrice * item.quantity;
+            const originalTotalPrice = item.price * item.quantity;
+
+            row.innerHTML = `
+                <td class="d-flex align-items-center font-weight-bolder">
+                    <div class="symbol symbol-60 flex-shrink-0 mr-4 bg-light">
+                        <div class="symbol-label" style="background-image: url('${item.image}')"></div>
+                    </div>
+                    <a href="#" class="text-dark text-hover-primary">${item.name}</a>
+                </td>
+                <td class="text-center align-middle">
+                    <button class="btn btn-xs btn-light-danger btn-icon mr-2" onclick="updateQuantity(${item.id}, -1)">
+                        <i class="ki ki-minus icon-xs"></i>
+                    </button>
+                    <span class="mr-2 font-weight-bolder product-qty">${item.quantity}</span>
+                    <button class="btn btn-xs btn-light-success btn-icon" onclick="updateQuantity(${item.id}, 1)">
+                        <i class="ki ki-plus icon-xs"></i>
+                    </button>
+                </td>
+                <td class="text-center align-middle">
+                    ${item.discount > 0 ? 
+                        `<div class="original-price">${item.price.toLocaleString()} UZS</div>
+                         <div class="discounted-price">${discountedPrice.toLocaleString()} UZS</div>` :
+                        `<div>${item.price.toLocaleString()} UZS</div>`
+                    }
+                </td>
+                <td class="text-center align-middle">
+                    <button class="btn btn-xs btn-light-primary btn-icon" onclick="openDiscountModal(${item.id})">
+                        <i class="ki ki-pencil icon-xs"></i>
+                    </button>
+                    <div style="font-size: 12px; color: #888; margin-top: 2px;">
+                        ${item.discount > 0 ? item.discount.toLocaleString() + ' UZS' : 'Yo\'q'}
+                    </div>
+                    <div style="font-size: 10px; color: #666;">
+                        Max: ${item.maxDiscount} UZS
+                    </div>
+                </td>
+                <td class="text-right align-middle font-weight-bolder font-size-h5">
+                    ${item.discount > 0 ? 
+                        `<div class="original-price">${originalTotalPrice.toLocaleString()} UZS</div>
+                         <div class="discounted-price">${totalItemPrice.toLocaleString()} UZS</div>` :
+                        `<div>${totalItemPrice.toLocaleString()} UZS</div>`
+                    }
+                </td>
+                <td class="text-right align-middle">
+                    <button class="btn btn-danger font-weight-bolder font-size-sm" onclick="removeFromCart(${item.id})">
+                        O'chirish
+                    </button>
+                </td>
+            `;
+            cartBody.appendChild(row);
+        });
+        
+        updateSummary();
+    }
+
+    // Miqdorni o'zgartirish
+    window.updateQuantity = function(productId, change) {
+        if (cartData[productId]) {
+            cartData[productId].quantity += change;
+            if (cartData[productId].quantity <= 0) {
+                delete cartData[productId];
+            }
+            updateCartDisplay();
+        }
+    };
+
+    // Korzinadan o'chirish
+    window.removeFromCart = function(productId) {
+        delete cartData[productId];
+        updateCartDisplay();
+    };
+
+    // Chegirma modalini ochish
+    window.openDiscountModal = function(productId) {
+        const item = cartData[productId];
+        if (!item) return;
+
+        const discountAmount = prompt(`${item.name} uchun chegirma miqdorini kiriting:\nMaksimal: ${item.maxDiscount} UZS\nJoriy: ${item.discount} UZS`, item.discount);
+        
+        if (discountAmount !== null) {
+            const discount = parseFloat(discountAmount) || 0;
+            if (discount >= 0 && discount <= item.maxDiscount) {
+                cartData[productId].discount = discount;
+                updateCartDisplay();
+            } else {
+                alert(`Chegirma 0 dan ${item.maxDiscount} UZS gacha bo'lishi kerak!`);
+            }
+        }
+    };
+
+    // Umumiy hisobni yangilash
+    function updateSummary() {
+        let totalPrice = 0;
+        let totalDiscount = 0;
+        let finalPrice = 0;
+
+        Object.values(cartData).forEach(item => {
+            const itemTotal = item.price * item.quantity;
+            const itemDiscountTotal = item.discount * item.quantity;
+            
+            totalPrice += itemTotal;
+            totalDiscount += itemDiscountTotal;
+            finalPrice += (itemTotal - itemDiscountTotal);
+        });
+
+        document.getElementById('total-price').textContent = totalPrice.toLocaleString() + ' UZS';
+        document.getElementById('total-discount').textContent = totalDiscount.toLocaleString() + ' UZS';
+        document.getElementById('final-price').textContent = finalPrice.toLocaleString() + ' UZS';
+    }
+
+    // Sotuvni saqlash
+    window.saveSale = function() {
+        if (Object.keys(cartData).length === 0) {
+            alert('Korzina bo\'sh! Avval mahsulot qo\'shing.');
+            return;
+        }
+
+        // Tugmani o'chirib qo'yish
+        const saveBtn = document.getElementById('save-sale-btn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="spinner-border spinner-border-sm mr-2"></i>Saqlanmoqda...';
+
+        const saleData = {
+            cart_items: cartData
+        };
+
+        fetch('/save-sale/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(saleData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'saved') {
+                alert(`Sotuv muvaffaqiyatli saqlandi!\n\nSotuv ID: #${data.sale_id}\nJami: ${data.total_amount.toLocaleString()} UZS`);
+                
+                // Kutilayotgan to'lovlar sahifasiga yo'naltirish
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    // Korzinani tozalash
+                    cartData = {};
+                    updateCartDisplay();
+                }
+            } else {
+                alert('Xatolik: ' + (data.message || 'Sotuv saqlanmadi'));
+            }
+        })
+        .catch(error => {
+            console.error('Xatolik:', error);
+            alert('Xatolik yuz berdi. Iltimos qaytadan urinib ko\'ring.');
+        })
+        .finally(() => {
+            // Tugmani qaytarish
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="ki ki-check icon-sm"></i> Sotuvni Saqlash';
+        });
+    };
+
+    // Klaviatura bilan ishlash (Enter tugmasi)
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.target === input) {
+            e.preventDefault();
+            // Birinchi mahsulotni tanlash
+            const firstCard = resultsBox.querySelector('.product-card');
+            if (firstCard) {
+                firstCard.click();
+            }
+        }
+        
+        // F2 tugmasi - sotuvni saqlash
+        if (e.key === 'F2') {
+            e.preventDefault();
+            saveSale();
+        }
+    });
+});
+</script>
+
+{% endblock %}
