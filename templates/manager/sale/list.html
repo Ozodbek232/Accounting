@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
     {% block content %}
+{% load humanize %}
 <!--begin::Head-->
 <!--end::Head-->
 <!--begin::Body-->
@@ -23,88 +24,393 @@
                 <!--begin::Content-->
                 <div class="content d-flex flex-column flex-column-fluid" id="kt_content">
                     <div class="d-flex flex-column-fluid">
-                        <div class="container">
 
-                            <div class="row">
-    
-                                <div class="col-md-12">
-                                    <!--begin::Advance Table Widget 4-->
-                                    <div class="card card-custom card-stretch gutter-b">
-                                        <!--begin::Header-->
-                                        <div class="card-header border-0 py-5">
+                            <!DOCTYPE html>
+    <style>
+               .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
 
-                                            <h3 class="card-title align-items-start flex-column">
-                                                <span class="card-label font-weight-bolder text-dark">Maxsulotlar</span>
-                                                <small class='mt-2'>Total: {{objects | length}}</small>
-                                            </h3>
-                                        </div>
-                                        <!--end::Header-->
-                                        <!--begin::Body-->
-                                        <div class="card-body pt-0 pb-3">
-                                            <div class="tab-content">
-                                                {% include 'parts/search.html' %}
-                                                <!--begin::Table-->
-                                                <div class="table-responsive">
-                                                    {% if objects %}
-                                                    <table class="table table-head-custom table-head-bg table-borderless table-vertical-center">
-                                                        <thead>
-                                                            <tr class="text-left text-uppercase">
-                                                            <th style="min-width: 100px">Nomi</th>
-                                                              <th style="min-width: 100px">Firmasi</th>
-                                                              <th style="min-width: 100px">Narxi</th>
-                                                                <th style="min-width: 100px">Miqdori</th>
-                                                                <th style="min-width: 100px">Kelgan sanasi</th>
-                                                                <th style="min-width: 100px">Actions</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {% for object in objects %}
-                                                            {% url 'common:product-update' object.id as u %}
-                                                            {% url 'common:product-delete' object.id as d %}
-                                                            <tr>
-                                                                <td class="pl-0 py-6">
-                                                                    <div class="d-flex align-items-center">
-                                                                        <div class="mr-4 symbol symbol-40 symbol-light-success">
-                                                                          {% if object.image %}
-                                                                            <img class="symbol-label" src=" {{object.image.url}}">							
-                                                                          {% else %}
-<span class="symbol-label">{{ object.name|slice:':1' }}</span>
-{% endif %}
-                                                                       </div>
-                                                                       <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.name}}</span>      
-                                                                    </div>
-                                                                </td>
-                                                                <td>
-                                                                    <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.category}}</span>
-                                                                </td>
-<td>
-                                                                    <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.price}}</span>
-                                                                </td><td>
-                                                                    <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.amount}}</span>
-                                                                </td><td>
-                                                                    <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.date_published}}</span>
-                                                                </td>
-                                                                <td nowrap="nowrap">
-                                                                        {% include "parts/actions.html" with update=u delete=d %}
-                                                                </td>
-                                                            </tr>
-                                                            {% endfor %}
-                                                    </table>
-                                                </div>
-                                                <!--end::Table-->
-                                                {% endif %}
-                                            </div>
-                                            {% if page_obj.paginator.num_pages > 1 %}
-                                            {%include 'parts/pagination.html' %}
-                                            {% endif %}
-                                        </div>
-                                        <!--end::Body-->
-                                    </div>
-                                    <!--end::Advance Table Widget 4-->
-                                </div>
-                            </div>
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
 
-                        </div>
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            background: white;
+            border-bottom: 1px solid #eee;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px 12px 45px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-box input:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #adb5bd;
+        }
+
+        .add-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px 20px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .price {
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-edit {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            opacity: 0.9;
+        }
+
+        .footer {
+            padding: 30px;
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-box {
+                min-width: auto;
+            }
+            
+            th, td {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+    <div class="container">
+       
+
+        <div class="stats">
+            <div class="stat-card">
+              <div class="stat-number">{{total_price|intcomma}}</div>
+                <div class="stat-label">Jami sotuvlar</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{count|intcomma}}</div>
+                <div class="stat-label">Jami daromad</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-number">28</div>
+                <div class="stat-label">Shu oy</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="Mahsulot, mijoz yoki buyurtma raqami bo'yicha qidirish...">
+            </div>
+            <a href="" class="add-btn">+ Yangi sotuv</a>
+        </div>
+
+        <div class="table-container">
+            <table id="salesTable">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Sana</th>
+                        <th>Buyurtma №</th>
+                        <th>Soni</th>
+                        <th>Jami</th>
+                        <th>Holat</th>
+                    </tr>
+                </thead>
+                <tbody >
+{% for sale in objects %}
+              
+                    <tr>
+                      <td><strong>{{sale.id}}</strong></td>
+                       <td>{{sale.date}}</td>                     
+                      <td>ORD-N{{sale.id}}</td>
+                      <td>{{sale.quantity}}</td>
+                      <td class="price">{{sale.paid_amount}} UZS</td>
+                      <td><span class="status {{statusClass}}">{{statusText}}</span></td>
+                        
+                    </tr>
+              {% endfor %}
+ 
+                </tbody>
+            </table>
+        </div>
+
+
+    </div>
+
+    <script>
+        // Namunaviy ma'lumotlar
+       // Jadvalni to'ldirish
+        function renderTable(data = salesData) {
+            const tbody = document.getElementById('salesTableBody');
+            tbody.innerHTML = '';
+
+            data.forEach((sale, index) => {
+                const total = sale.quantity * sale.price;
+                const statusClass = sale.status;
+                const statusText = {
+                    'completed': 'Yakunlangan',
+                    'pending': 'Kutilmoqda',
+                    'cancelled': 'Bekor qilingan'
+                }[sale.status];
+
+                tbody.innerHTML += `
+              
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${sale.date}</td>
+                        <td><strong>${sale.id}</strong></td>
+                        <td>${sale.customer}</td>
+                        <td>${sale.product}</td>
+                        <td>${sale.quantity}</td>
+                        <td class="price">₽${sale.price}</td>
+                        <td class="price">₽${total}</td>
+                        <td><span class="status ${statusClass}">${statusText}</span></td>
+                    </tr>
+                `;
+            });
+
+            updateStats();
+        }
+
+        // Statistikani yangilash
+        function updateStats() {
+            const completedSales = salesData.filter(sale => sale.status === 'completed');
+            const totalRevenue = completedSales.reduce((sum, sale) => sum + (sale.quantity * sale.price), 0);
+            const avgOrder = totalRevenue / completedSales.length || 0;
+
+            document.getElementById('totalSales').textContent = salesData.length;
+            document.getElementById('totalRevenue').textContent = `₽${totalRevenue.toLocaleString()}`;
+            document.getElementById('avgOrder').textContent = `₽${Math.round(avgOrder).toLocaleString()}`;
+            document.getElementById('thisMonth').textContent = salesData.filter(sale => {
+                const saleDate = new Date(sale.date.split('.').reverse().join('-'));
+                const now = new Date();
+                return saleDate.getMonth() === now.getMonth();
+            }).length;
+        }
+
+        // Qidiruv funksiyasi
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredData = salesData.filter(sale => 
+                sale.customer.toLowerCase().includes(searchTerm) ||
+                sale.product.toLowerCase().includes(searchTerm) ||
+                sale.orderNo.toLowerCase().includes(searchTerm)
+            );
+            renderTable(filteredData);
+        });
+
+        // Yangi sotuv qo'shish
+        function addNewSale() {
+            const customer = prompt('Mijoz nomi:');
+            const product = prompt('Mahsulot nomi:');
+            const quantity = parseInt(prompt('Soni:'));
+            const price = parseInt(prompt('Narx (₽):'));
+
+            if (customer && product && quantity && price) {
+                const newSale = {
+                    id: salesData.length + 1,
+                    date: new Date().toLocaleDateString('uz-UZ'),
+                    orderNo: `ORD-${String(salesData.length + 1).padStart(3, '0')}`,
+                    customer: customer,
+                    product: product,
+                    quantity: quantity,
+                    price: price,
+                    status: 'pending'
+                };
+                
+                salesData.unshift(newSale);
+                renderTable();
+                alert('Yangi sotuv qo\'shildi!');
+            }
+        }
+
+        renderTable();
+    </script>
+
                         <!-- .container -->
                     </div> <!-- .d-flex.flex-column-fluid -->
                 </div>

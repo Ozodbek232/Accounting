@@ -252,7 +252,7 @@ def save_sale(request):
             sale.save()
             
             # Javob qaytarish
-            if sale.status == 'paid':
+            if sale.status == 'pending':
                 return JsonResponse({
                     'status': 'completed',
                     'sale_id': sale.id,
@@ -507,13 +507,21 @@ def pending_payments_view(request):
     return render(request, 'manager/sale/pending-payment.html')
 
 class SaleListView(ListView):
-    model = models.Payment
+    model = models.Sale
     template_name = 'manager/sale/list.html'
     context_object_name = 'objects'
-    queryset = models.Payment.objects.filter(payment_type='cash')
+    queryset = models.Sale.objects.filter(status='paid')
+    context = {
+        'total_price': 'total_price'    
+    }
     def get_queryset(self):
         object_list = self.queryset
         return object_list
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        total = self.queryset.aggregate(total_price=Sum('total_price'))['total_price'] or 0
+        context['total_price'] = total
+        return context
 # YANGILANGAN SALE_DETAIL - KLIENT MA'LUMOTLARI BILAN
 """
 def sale_detail(request, pk):
