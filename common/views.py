@@ -506,28 +506,16 @@ def pending_payments_view(request):
     """Kutilayotgan to'lovlar sahifasi"""
     return render(request, 'manager/sale/pending-payment.html')
 
-"""
-def sales_list(request):
-    sales = models.Sale.objects.prefetch_related('items__product').select_related('seller').order_by('-date')
-
-    # Statistika hisoblash
-    total_sales = sales.count()
-    total_amount = sales.aggregate(total=Sum('total_price'))['total'] or 0
-    total_cash = sales.aggregate(total=Sum('cash_amount'))['total'] or 0
-    total_credit = sales.aggregate(total=Sum('credit_amount'))['total'] or 0
-    credit_sales = sales.filter(credit_amount__gt=0).count()
-
-    context = {
-        'sales': sales,
-        'total_sales': total_sales,
-        'total_amount': total_amount,
-        'total_cash': total_cash,
-        'total_credit': total_credit,
-        'credit_sales': credit_sales,
-    }
-
-    return render(request, 'manager/sale/list.html', context)
+class SaleListView(ListView):
+    model = models.Payment
+    template_name = 'manager/sale/list.html'
+    context_object_name = 'objects'
+    queryset = models.Payment.objects.filter(payment_type='cash')
+    def get_queryset(self):
+        object_list = self.queryset
+        return object_list
 # YANGILANGAN SALE_DETAIL - KLIENT MA'LUMOTLARI BILAN
+"""
 def sale_detail(request, pk):
     try:
         sale = models.Sale.objects.prefetch_related('items__product').select_related('seller').get(id=pk)
@@ -828,8 +816,5 @@ def delete_subcategory_ajax(request, subcategory_id):
         })
 """
 
-def credit_sales_list(request):
-    credit_sales = models.Payment.objects.filter(payment_type='credit').prefetch_related('items__product').order_by('-date')
-    return render(request, 'manager/sale/credit_list.html', {'credit_sales': credit_sales})
-
+ 
 

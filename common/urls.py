@@ -25,13 +25,12 @@ urlpatterns = [
     path("manager/product/<int:pk>update/", views.ProductUpdateView.as_view(), name="product-update"),
     path("manager/product/<int:pk>delete/", views.ProductDeleteView.as_view(), name="product-delete"),
 
-    path('sale/', views.sale, name='sale-create'),
-    path('search-products/', views.search_products, name='search_products'),
-    
     
     # Asosiy sahifalar
-    
+    path('sale/create', views.sale, name='sale-create'), 
+    path('sale/', views.SaleListView.as_view(), name='sale-list'),
     # Sotuv korzinasi
+    path('add-payment/<int:sale_id>/', views.add_payment, name='add_payment'),
     path('search-products/', views.search_products, name='search_products'),
     path('save-sale/', views.save_sale, name='save_sale'),
     

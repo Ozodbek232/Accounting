@@ -2,8 +2,6 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django_resized import ResizedImageField
 from django.db.models import Sum
-from abc import  abstractmethod
-class CustomUser(Abst)
 class Seller(models.Model):
     image = ResizedImageField(_("Maxsulot rasmi"), size=[60, 60], quality=99, crop=["middle", "center"], null=True, blank=True, upload_to="seller/%Y/%m",)
     first_name = models.CharField(_("Ismi"), max_length=40)

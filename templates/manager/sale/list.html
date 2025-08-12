@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% load static %}
+    {% block content %}
+<!--begin::Head-->
+<!--end::Head-->
+<!--begin::Body-->
+<body id="kt_body" class="header-fixed header-mobile-fixed subheader-enabled subheader-fixed aside-enabled aside-fixed aside-minimize-hoverable page-loading">
+    <!--begin::Main-->
+    <!--begin::Header Mobile-->
+    {% include "parts/header-mobile.html" %}
+    <!--end::Header Mobile-->
+    <div class="d-flex flex-column flex-root">
+        <!--begin::Page-->
+        <div class="d-flex flex-row flex-column-fluid page">
+            <!--begin::Aside-->
+            {% include "parts/aside.html" with menu_parent='product-list' menu_child='product-all' %}
+            <!--end::Aside-->
+            <!--begin::Wrapper-->
+            <div class="d-flex flex-column flex-row-fluid wrapper" id="kt_wrapper">
+                <!--begin::Header-->
+                {% include "parts/header.html" %}
+                <!--end::Header-->
+                <!--begin::Content-->
+                <div class="content d-flex flex-column flex-column-fluid" id="kt_content">
+                    <div class="d-flex flex-column-fluid">
+                        <div class="container">
+
+                            <div class="row">
+    
+                                <div class="col-md-12">
+                                    <!--begin::Advance Table Widget 4-->
+                                    <div class="card card-custom card-stretch gutter-b">
+                                        <!--begin::Header-->
+                                        <div class="card-header border-0 py-5">
+
+                                            <h3 class="card-title align-items-start flex-column">
+                                                <span class="card-label font-weight-bolder text-dark">Maxsulotlar</span>
+                                                <small class='mt-2'>Total: {{objects | length}}</small>
+                                            </h3>
+                                        </div>
+                                        <!--end::Header-->
+                                        <!--begin::Body-->
+                                        <div class="card-body pt-0 pb-3">
+                                            <div class="tab-content">
+                                                {% include 'parts/search.html' %}
+                                                <!--begin::Table-->
+                                                <div class="table-responsive">
+                                                    {% if objects %}
+                                                    <table class="table table-head-custom table-head-bg table-borderless table-vertical-center">
+                                                        <thead>
+                                                            <tr class="text-left text-uppercase">
+                                                            <th style="min-width: 100px">Nomi</th>
+                                                              <th style="min-width: 100px">Firmasi</th>
+                                                              <th style="min-width: 100px">Narxi</th>
+                                                                <th style="min-width: 100px">Miqdori</th>
+                                                                <th style="min-width: 100px">Kelgan sanasi</th>
+                                                                <th style="min-width: 100px">Actions</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for object in objects %}
+                                                            {% url 'common:product-update' object.id as u %}
+                                                            {% url 'common:product-delete' object.id as d %}
+                                                            <tr>
+                                                                <td class="pl-0 py-6">
+                                                                    <div class="d-flex align-items-center">
+                                                                        <div class="mr-4 symbol symbol-40 symbol-light-success">
+                                                                          {% if object.image %}
+                                                                            <img class="symbol-label" src=" {{object.image.url}}">							
+                                                                          {% else %}
+<span class="symbol-label">{{ object.name|slice:':1' }}</span>
+{% endif %}
+                                                                       </div>
+                                                                       <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.name}}</span>      
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.category}}</span>
+                                                                </td>
+<td>
+                                                                    <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.price}}</span>
+                                                                </td><td>
+                                                                    <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.amount}}</span>
+                                                                </td><td>
+                                                                    <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.date_published}}</span>
+                                                                </td>
+                                                                <td nowrap="nowrap">
+                                                                        {% include "parts/actions.html" with update=u delete=d %}
+                                                                </td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                    </table>
+                                                </div>
+                                                <!--end::Table-->
+                                                {% endif %}
+                                            </div>
+                                            {% if page_obj.paginator.num_pages > 1 %}
+                                            {%include 'parts/pagination.html' %}
+                                            {% endif %}
+                                        </div>
+                                        <!--end::Body-->
+                                    </div>
+                                    <!--end::Advance Table Widget 4-->
+                                </div>
+                            </div>
+
+                        </div>
+                        <!-- .container -->
+                    </div> <!-- .d-flex.flex-column-fluid -->
+                </div>
+                <!--end::Content--> <!--begin::Footer-->
+                {% include "parts/footer.html" %}
+                <!--end::Footer-->
+            </div>
+            <!--end::Wrapper-->
+        </div>
+        <!--end::Page-->
+    </div>
+    <!--end::Main-->
+    <!-- begin::User Panel-->
+    {% include "parts/user-panel.html" %}
+    <!--begin::Quick Cart-->
+    <!--end::Quick Cart-->
+    <!--begin::Quick Panel-->
+    <!--end::Quick Panel-->
+    <!--begin::Chat Panel-->
+    <!--end::Chat Panel-->
+    <!--begin::Scrolltop-->
+    {% include "parts/scrolltop.html" %}
+    <!--end::Scrolltop-->
+    <!--begin::Sticky Toolbar-->
+    <!--end::Sticky Toolbar-->
+    <!--begin::Demo Panel-->
+    <!--end::Demo Panel-->
+
+
+</body>
+<!--end::Body-->
+{% endblock %}
+
