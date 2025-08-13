@@ -14,7 +14,7 @@
         <!--begin::Page-->
         <div class="d-flex flex-row flex-column-fluid page">
             <!--begin::Aside-->
-            {% include "parts/aside.html" with menu_parent='product-list' menu_child='product-all' %}
+            {% include "parts/aside.html" with menu_parent='sale-list' menu_child='sale-all' %}
             <!--end::Aside-->
             <!--begin::Wrapper-->
             <div class="d-flex flex-column flex-row-fluid wrapper" id="kt_wrapper">
@@ -27,31 +27,13 @@
 
                             <!DOCTYPE html>
     <style>
-               .container {
+        .container {
             max-width: 1200px;
             margin: 0 auto;
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #2c3e50, #34495e);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
-
-        .header p {
-            opacity: 0.9;
-            font-size: 1.1rem;
         }
 
         .stats {
@@ -180,13 +162,18 @@
             font-weight: 600;
         }
 
-        .status.completed {
+        .status.paid {
             background: #d4edda;
             color: #155724;
         }
 
         .status.pending {
             background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.partial {
+            background: #ffeeba;
             color: #856404;
         }
 
@@ -229,6 +216,165 @@
             opacity: 0.9;
         }
 
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: relative;
+            background: white;
+            margin: 5% auto;
+            padding: 0;
+            width: 90%;
+            max-width: 800px;
+            border-radius: 15px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            animation: modalSlideIn 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 25px 30px;
+            border-bottom: 1px solid #eee;
+            background: white;
+            color: black;
+            border-radius: 15px 15px 0 0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.3s ease;
+        }
+
+        .close:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .sale-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .products-section h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .product-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .product-table th,
+        .product-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .product-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .product-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .payments-section {
+            margin-top: 30px;
+        }
+
+        .payments-section h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 2px solid #28a745;
+            padding-bottom: 10px;
+        }
+
+        .payment-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .payment-type {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
         .footer {
             padding: 30px;
             background: #2c3e50;
@@ -242,8 +388,9 @@
                 border-radius: 15px;
             }
             
-            .header h1 {
-                font-size: 2rem;
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
             }
             
             .controls {
@@ -262,20 +409,18 @@
         }
     </style>
     <div class="container">
-       
-
         <div class="stats">
             <div class="stat-card">
-              <div class="stat-number">{{total_price|intcomma}}</div>
+              <div class="stat-number">{{count|intcomma}}</div>
                 <div class="stat-label">Jami sotuvlar</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">{{count|intcomma}}</div>
+                <div class="stat-number">{{total_price|intcomma}}</div>
                 <div class="stat-label">Jami daromad</div>
             </div>
             
             <div class="stat-card">
-                <div class="stat-number">28</div>
+              <div class="stat-number">{{monthly_count}}</div>
                 <div class="stat-label">Shu oy</div>
             </div>
         </div>
@@ -294,121 +439,237 @@
                     <tr>
                         <th>№</th>
                         <th>Sana</th>
-                        <th>Buyurtma №</th>
-                        <th>Soni</th>
-                        <th>Jami</th>
+                        <th>Mijoz</th>
+                        <th>Telefon</th>
+                        <th>Jami summa</th>
+                        <th>To'langan</th>
                         <th>Holat</th>
+                        <th>Amallar</th>
                     </tr>
                 </thead>
-                <tbody >
-{% for sale in objects %}
-              
+                <tbody>
+                    {% for sale in objects %}
                     <tr>
-                      <td><strong>{{sale.id}}</strong></td>
-                       <td>{{sale.date}}</td>                     
-                      <td>ORD-N{{sale.id}}</td>
-                      <td>{{sale.quantity}}</td>
-                      <td class="price">{{sale.paid_amount}} UZS</td>
-                      <td><span class="status {{statusClass}}">{{statusText}}</span></td>
-                        
+                        <td>{{ sale.id }}</td>
+                        <td>{{ sale.date|date:"d.m.Y H:i" }}</td>
+                        <td>{{ sale.client_full_name|default:"—" }}</td>
+                        <td>{{ sale.client_phone|default:"—" }}</td>
+                        <td class="price">{{ sale.total_price|intcomma }} UZS</td>
+                        <td class="price">{{ sale.paid_amount|intcomma }} UZS</td>
+                        <td>
+                            <span class="status {{ sale.status }}">
+                                {% if sale.status == 'paid' %}To'langan
+                                {% elif sale.status == 'pending' %}Kutilmoqda
+                                {% elif sale.status == 'partial' %}Qisman
+                                {% else %}{{ sale.get_status_display }}
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td class="actions">
+                            <button class="btn btn-edit" onclick="openModal({{ sale.id }})">Batafsil</button>
+                        </td>
                     </tr>
-              {% endfor %}
- 
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
+    </div>
 
-
+    <!-- Modal -->
+    <div id="saleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2  id="modalTitle">Sotuv tafsilotlari</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
     </div>
 
     <script>
-        // Namunaviy ma'lumotlar
-       // Jadvalni to'ldirish
-        function renderTable(data = salesData) {
-            const tbody = document.getElementById('salesTableBody');
-            tbody.innerHTML = '';
+        // Sale data from Django
+        const salesData = [
+            {% for sale in objects %}
+            {
+                id: {{ sale.id }},
+                date: "{{ sale.date|date:"d.m.Y H:i" }}",
+                client_name: "{{ sale.client_full_name|default:"—" }}",
+                client_phone: "{{ sale.client_phone|default:"—" }}",
+                total_price: {{ sale.total_price }},
+                paid_amount: {{ sale.paid_amount }},
+                remaining_amount: {{ sale.remaining_amount }},
+                status: "{{ sale.status }}",
+                due_date: "{{ sale.client_due_date|date:"d.m.Y"|default:"—" }}",
+                items: [
+                    {% for item in sale.items.all %}
+                    {
+                        product_name: "{{ item.product.name }}",
+                        quantity: {{ item.quantity }},
+                        price: {{ item.price }},
+                        discount: {{ item.discount }},
+                        total: {{ item.total }}
+                    }{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                payments: [
+                    {% for payment in sale.payments.all %}
+                    {
+                        type: "{{ payment.get_payment_type_display }}",
+                        amount: {{ payment.amount }},
+                        date: "{{ payment.date|date:"d.m.Y H:i" }}",
+                        description: "{{ payment.description|default:"" }}"
+                    }{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ]
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
 
-            data.forEach((sale, index) => {
-                const total = sale.quantity * sale.price;
-                const statusClass = sale.status;
-                const statusText = {
-                    'completed': 'Yakunlangan',
-                    'pending': 'Kutilmoqda',
-                    'cancelled': 'Bekor qilingan'
-                }[sale.status];
+        function openModal(saleId) {
+            const sale = salesData.find(s => s.id === saleId);
+            if (!sale) return;
 
-                tbody.innerHTML += `
-              
+            document.getElementById('modalTitle').textContent = `Sotuv #${sale.id} tafsilotlari`;
+            
+            const statusText = {
+                'paid': 'To\'langan',
+                'pending': 'Kutilmoqda', 
+                'partial': 'Qisman to\'langan',
+                'cancelled': 'Bekor qilingan'
+            };
+
+            let modalContent = `
+                <div class="sale-info">
+                    <div class="info-item">
+                        <span class="info-label">Sotuv raqami</span>
+                        <span class="info-value">#${sale.id}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Sana</span>
+                        <span class="info-value">${sale.date}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Mijoz</span>
+                        <span class="info-value">${sale.client_name}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Telefon</span>
+                        <span class="info-value">${sale.client_phone}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">To'lov muddati</span>
+                        <span class="info-value">${sale.due_date}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Holat</span>
+                        <span class="info-value">
+                            <span class="status ${sale.status}">${statusText[sale.status]}</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="products-section">
+                    <h3>📦 Sotilgan mahsulotlar</h3>
+                    <table class="product-table">
+                        <thead>
+                            <tr>
+                                <th>Mahsulot</th>
+                                <th>Miqdor</th>
+                                <th>Narx</th>
+                                <th>Chegirma</th>
+                                <th>Jami</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            sale.items.forEach(item => {
+                modalContent += `
                     <tr>
-                        <td>${index + 1}</td>
-                        <td>${sale.date}</td>
-                        <td><strong>${sale.id}</strong></td>
-                        <td>${sale.customer}</td>
-                        <td>${sale.product}</td>
-                        <td>${sale.quantity}</td>
-                        <td class="price">₽${sale.price}</td>
-                        <td class="price">₽${total}</td>
-                        <td><span class="status ${statusClass}">${statusText}</span></td>
+                        <td>${item.product_name}</td>
+                        <td>${item.quantity} dona</td>
+                        <td>${item.price.toLocaleString()} UZS</td>
+                        <td>${item.discount.toLocaleString()} UZS</td>
+                        <td class="price">${item.total.toLocaleString()} UZS</td>
                     </tr>
                 `;
             });
 
-            updateStats();
+            modalContent += `
+                        </tbody>
+                    </table>
+                    
+                    <div class="sale-info">
+                        <div class="info-item">
+                            <span class="info-label">Jami summa</span>
+                            <span class="info-value price">${sale.total_price.toLocaleString()} UZS</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">To'langan</span>
+                            <span class="info-value price">${sale.paid_amount.toLocaleString()} UZS</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Qolgan qarz</span>
+                            <span class="info-value" style="color: ${sale.remaining_amount > 0 ? '#dc3545' : '#28a745'}">${sale.remaining_amount.toLocaleString()} UZS</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (sale.payments && sale.payments.length > 0) {
+                modalContent += `
+                    <div class="payments-section">
+                        <h3>💳 To'lovlar tarixi</h3>
+                `;
+
+                sale.payments.forEach(payment => {
+                    modalContent += `
+                        <div class="payment-item">
+                            <div>
+                                <span class="payment-type">${payment.type}</span>
+                                <span style="margin-left: 15px; color: #666;">${payment.date}</span>
+                                ${payment.description ? `<div style="font-size: 0.9rem; color: #888; margin-top: 5px;">${payment.description}</div>` : ''}
+                            </div>
+                            <div class="price" style="font-size: 1.1rem;">${payment.amount.toLocaleString()} UZS</div>
+                        </div>
+                    `;
+                });
+
+                modalContent += `</div>`;
+            }
+
+            document.getElementById('modalBody').innerHTML = modalContent;
+            document.getElementById('saleModal').style.display = 'block';
         }
 
-        // Statistikani yangilash
-        function updateStats() {
-            const completedSales = salesData.filter(sale => sale.status === 'completed');
-            const totalRevenue = completedSales.reduce((sum, sale) => sum + (sale.quantity * sale.price), 0);
-            const avgOrder = totalRevenue / completedSales.length || 0;
-
-            document.getElementById('totalSales').textContent = salesData.length;
-            document.getElementById('totalRevenue').textContent = `₽${totalRevenue.toLocaleString()}`;
-            document.getElementById('avgOrder').textContent = `₽${Math.round(avgOrder).toLocaleString()}`;
-            document.getElementById('thisMonth').textContent = salesData.filter(sale => {
-                const saleDate = new Date(sale.date.split('.').reverse().join('-'));
-                const now = new Date();
-                return saleDate.getMonth() === now.getMonth();
-            }).length;
+        function closeModal() {
+            document.getElementById('saleModal').style.display = 'none';
         }
 
-        // Qidiruv funksiyasi
-        document.getElementById('searchInput').addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const filteredData = salesData.filter(sale => 
-                sale.customer.toLowerCase().includes(searchTerm) ||
-                sale.product.toLowerCase().includes(searchTerm) ||
-                sale.orderNo.toLowerCase().includes(searchTerm)
-            );
-            renderTable(filteredData);
-        });
-
-        // Yangi sotuv qo'shish
-        function addNewSale() {
-            const customer = prompt('Mijoz nomi:');
-            const product = prompt('Mahsulot nomi:');
-            const quantity = parseInt(prompt('Soni:'));
-            const price = parseInt(prompt('Narx (₽):'));
-
-            if (customer && product && quantity && price) {
-                const newSale = {
-                    id: salesData.length + 1,
-                    date: new Date().toLocaleDateString('uz-UZ'),
-                    orderNo: `ORD-${String(salesData.length + 1).padStart(3, '0')}`,
-                    customer: customer,
-                    product: product,
-                    quantity: quantity,
-                    price: price,
-                    status: 'pending'
-                };
-                
-                salesData.unshift(newSale);
-                renderTable();
-                alert('Yangi sotuv qo\'shildi!');
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('saleModal');
+            if (event.target === modal) {
+                closeModal();
             }
         }
 
-        renderTable();
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const tableRows = document.querySelectorAll('#salesTable tbody tr');
+            
+            tableRows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
     </script>
 
                         <!-- .container -->
@@ -439,8 +700,6 @@
     <!--begin::Demo Panel-->
     <!--end::Demo Panel-->
 
-
 </body>
 <!--end::Body-->
 {% endblock %}
-

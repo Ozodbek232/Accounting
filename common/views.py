@@ -10,6 +10,7 @@ from common import models, forms
 from helpers.views import CreateView, UpdateView, DeleteView
 from datetime import date
 import json
+import datetime
 
 
 
@@ -511,48 +512,35 @@ class SaleListView(ListView):
     template_name = 'manager/sale/list.html'
     context_object_name = 'objects'
     queryset = models.Sale.objects.filter(status='paid')
-    context = {
-        'total_price': 'total_price'    
-    }
     def get_queryset(self):
         object_list = self.queryset
         return object_list
     def get_context_data(self, **kwargs):
+        sold_products = models.SaleItem.objects.select_related('product', 'sale').filter(
+            sale__status='paid'
+        )
+
+
         context = super().get_context_data(**kwargs)
         total = self.queryset.aggregate(total_price=Sum('total_price'))['total_price'] or 0
+        count = self.queryset.count()
+        
+        today = datetime.date.today()
+
+        monthly_sales = models.Sale.objects.filter(
+            status='paid',
+            date__month= today.month
+        )
+        monthly_count = monthly_sales.count()
+        context['sold_products'] = sold_products
+        context['monthly_count'] = monthly_count
+        context['count'] = count
         context['total_price'] = total
         return context
-# YANGILANGAN SALE_DETAIL - KLIENT MA'LUMOTLARI BILAN
-"""
-def sale_detail(request, pk):
-    try:
-        sale = models.Sale.objects.prefetch_related('items__product').select_related('seller').get(id=pk)
-        data = {
-            'id': sale.id,
-            'date': sale.date.strftime('%Y-%m-%d %H:%M'),
-            'seller': sale.seller.name if sale.seller else None,
-            'total_price': sale.total_price,
-            'cash_amount': sale.cash_amount,
-            'credit_amount': sale.credit_amount,
-            'client_full_name': sale.client_full_name,
-            'client_phone': sale.client_phone,
-            'client_due_date': sale.client_due_date.strftime('%Y-%m-%d') if sale.client_due_date else None,
-            'items': [
-                {
-                    'product': item.product.name,
-                    'quantity': item.quantity,
-                    'price': item.price,
-                    'discount': item.discount,
-                    'total': item.total
-                }
-                for item in sale.items.all()
-            ]
-        }
-        return JsonResponse({'status': 'ok', 'data': data})
-    except models.Sale.DoesNotExist:
-        return JsonResponse({'status': 'error', 'message': 'Sotuv topilmadi'})
 
+# YANGILANGAN SALE_DETAIL - KLIENT MA'LUMOTLARI BILAN
 # YANGI FUNKSIYA: Nasiyali sotuvlarni ko'rish
+"""
 def credit_sales_list(request):
     credit_sales = models.Payment.objects.filter(
         credit_amount__gt=0
