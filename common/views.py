@@ -3,7 +3,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import ListView
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
+
 from django.db.models import Q, Sum
 from django.utils import timezone
 from common import models, forms
@@ -12,6 +13,41 @@ from datetime import date
 import json
 import datetime
 from django.views.decorators.http import require_POST
+from django.contrib.auth import authenticate, login
+from django.urls import reverse_lazy
+
+class LoginView(View):
+    def get(self, request):
+        if request.user.is_authenticated:
+            return self.redirect_by_role(request.user)
+        return render(request, "signin.html")
+
+    def post(self, request):
+        req = request.POST.dict()
+        username = req.get("username")
+        password = req.get("password")
+        user = authenticate(username=username, password=password)
+        if user:
+            login(request, user)
+            return self.redirect_by_role(user)
+        else:
+            return render(request, "signin.html", {"error": True})
+
+    def redirect_by_role(self, user):
+        if user.role == "manager":
+            return HttpResponseRedirect(reverse_lazy("common:home"))
+        if user.role == "cashier":
+            return HttpResponseRedirect(reverse_lazy("common:home"))
+        if user.role == "seller":
+            return HttpResponseRedirect(reverse_lazy("common:home"))
+
+        raise PermissionDenied("You don't have access to this page")
+
+
+class LogoutView(View):
+    def get(self, request):
+        logout(request)
+        return HttpResponseRedirect(reverse_lazy("login"))
 
 
 class HomeView(View):
@@ -202,10 +238,7 @@ def make_payment(request, sale_id):
         sale_id = request.POST.get('sale_id')
         payment_amount = request.POST.get('payment_amount')
         
-        # Debug uchun log
-        logger.info(f"Payment request: sale_id={sale_id}, amount={payment_amount}")
-        print(f"Payment request received: sale_id={sale_id}, amount={payment_amount}")
-        
+       
         # Ma'lumotlar tekshiruvi
         if not sale_id:
             return JsonResponse({
@@ -252,13 +285,7 @@ def make_payment(request, sale_id):
         sale.refresh_from_db()
         
         # Debug ma'lumotlari
-        print(f"Sale #{sale_id} ma'lumotlari:")
-        print(f"Total price: {sale.total_price}")
-        print(f"Paid amount: {sale.paid_amount}")
-        print(f"Credit amount: {sale.credit_amount}")
-        print(f"Remaining amount: {sale.remaining_amount}")
-        print(f"Status: {sale.status}")
-        
+       
         # Nasiya summasini tekshirish (credit to'lov turi bo'yicha)
         current_credit = sale.credit_amount
         max_credit_payment = sale.total_price - sale.paid_amount + current_credit
@@ -308,7 +335,6 @@ def make_payment(request, sale_id):
         sale.refresh_from_db()
         remaining_credit_after_payment = sale.credit_amount
         
-        print(f"Payment created: {payment_amount}, remaining credit: {remaining_credit_after_payment}")
         
         # Javobni tayyorlash
         is_fully_paid = sale.is_fully_paid
@@ -326,10 +352,7 @@ def make_payment(request, sale_id):
         })
         
     except Exception as e:
-        # Xatolikni log qilish
-        logger.error(f"Payment error: {str(e)}")
-        print(f"Payment error: {str(e)}")
-        
+       
         # Debug rejimida batafsil xatolik
         try:
             from django.conf import settings
@@ -343,86 +366,61 @@ def make_payment(request, sale_id):
             'status': 'error',
             'message': f'Server xatoligi: {str(e)}'
         })
+# common/views.py
+from django.db import transaction
+from django.utils import timezone
+from common.models import CashRegister, Payment, Sale
+
 @csrf_exempt
 def add_payment(request, sale_id):
-    """Yangi to'lov qo'shish (umumiy)"""
-    if request.method == "POST":
-        try:
-            sale = get_object_or_404(Sale, pk=sale_id)
-            data = json.loads(request.body)
-            
-            payment_type = data.get('payment_type')
-            amount = float(data.get('amount', 0))
-            description = data.get('description', '')
-            
-            client_name = data.get('client_name', '')
-            client_phone = data.get('client_phone', '')
-            client_due_date = data.get('client_due_date', None)
-            
-            print(f"ADD PAYMENT: sale_id={sale_id}, type={payment_type}, amount={amount}")
-            
-            # Validatsiya
-            if amount <= 0:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'To\'lov summasi 0 dan katta bo\'lishi kerak'
-                }, status=400)
-            
-            # Sale ma'lumotlarini yangilash
-            sale.update_totals()
-            
-            # Pending amount bilan solishtirish (faqat oddiy to'lovlar uchun)
-            if amount > sale.pending_amount:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': f'To\'lov summasi kutilayotgan to\'lovdan ({sale.pending_amount:,} so\'m) katta bo\'lishi mumkin emas'
-                }, status=400)
-            
-            # Nasiya uchun mijoz ma'lumotlarini tekshirish
-            if payment_type == 'credit' and (not client_name or not client_phone):
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Nasiya uchun mijoz ma\'lumotlari kiritilishi kerak'
-                }, status=400)
-            
-            # To'lov yaratish
+    """To'lov qo'shish va kassaga ulash"""
+    if request.method != "POST":
+        return JsonResponse({'status': 'error'}, status=400)
+
+    try:
+        sale = get_object_or_404(Sale, pk=sale_id)
+        data = json.loads(request.body)
+
+        payment_type = data.get('payment_type')
+        amount = Decimal(data.get('amount', 0))
+        description = data.get('description', '')
+
+        if amount <= 0:
+            return JsonResponse({'status': 'error', 'message': 'Summani kiriting'}, status=400)
+
+        # To'lovni yaratamiz
+        with transaction.atomic():
             payment = Payment.objects.create(
                 sale=sale,
                 payment_type=payment_type,
                 amount=amount,
-                description=description or f'{dict(Payment.PAYMENT_TYPE_CHOICES)[payment_type]} to\'lovi'
+                description=description
             )
-            
-            # Mijoz ma'lumotlarini saqlash (nasiya uchun)
-            if payment_type == 'credit':
-                sale.client_full_name = client_name
-                sale.client_phone = client_phone
-                if client_due_date:
-                    from datetime import datetime
-                    sale.client_due_date = datetime.strptime(client_due_date, '%Y-%m-%d').date()
-                sale.save()
-            
-            # Sale avtomatik yangilanadi
-            sale.refresh_from_db()
-            
-            return JsonResponse({
-                'status': 'success',
-                'message': 'To\'lov muvaffaqiyatli qo\'shildi',
-                'pending_amount': sale.pending_amount,
-                'remaining_amount': sale.remaining_amount,
-                'paid_amount': sale.paid_amount,
-                'sale_status': sale.status
-            })
-            
-        except Exception as e:
-            print(f"Add payment error: {str(e)}")
-            return JsonResponse({
-                'status': 'error',
-                'message': f'Xatolik yuz berdi: {str(e)}'
-            }, status=500)
-    
-    return JsonResponse({'status': 'error'}, status=400)
 
+            # Sotuvni yangilash
+            sale.update_totals()
+
+            # Agar to‘lovdan keyin status "paid" bo‘lsa → kassaga qo‘shamiz
+            if sale.status == 'paid' and payment_type in ['cash', 'card']:
+                cash_register = CashRegister.objects.filter(
+                    user=request.user,
+                ).order_by('-opened_at').first()
+
+                if cash_register:
+                    if payment_type == 'cash':
+                        cash_register.total_cash += payment.amount
+                    elif payment_type == 'card':
+                        cash_register.total_card += payment.amount
+                    cash_register.save()
+
+        return JsonResponse({
+            'status': 'success',
+            'message': 'To‘lov qo‘shildi',
+            'sale_status': sale.status
+        })
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @csrf_exempt
 @require_POST
@@ -494,6 +492,7 @@ def save_sale(request):
             # Yangi sotuv yaratish
             from common.models import Sale, Product, SaleItem, Payment
             sale = Sale.objects.create(
+                user=request.user,
                 status='pending',
                 total_price=0,
                 paid_amount=0,
@@ -732,11 +731,7 @@ def payment_statistics_api(request):
             pending_amount__gt=0
         ).aggregate(total=Sum('pending_amount'))['total'] or 0
         
-        # Jami nasiya (credit to'lovlar)
-        total_credit = Payment.objects.filter(
-            payment_type='credit'
-        ).aggregate(total=Sum('amount'))['total'] or 0
-        
+       
         # Bugun to'langan
         today_payments = Payment.objects.filter(
             date__date=today
@@ -755,7 +750,6 @@ def payment_statistics_api(request):
         
         return JsonResponse({
             'total_pending': total_pending,
-            'total_credit': total_credit,
             'today_payments': today_payments,
             'pending_count': pending_count,
             'partial_count': partial_count,
@@ -774,6 +768,7 @@ def create_payment_modal(request, sale_id):
         try:
             from common.models import Sale, Payment
             sale = get_object_or_404(Sale, pk=sale_id)
+            
             sale.update_totals()
             
             return JsonResponse({
@@ -788,7 +783,8 @@ def create_payment_modal(request, sale_id):
                     'client_name': sale.client_full_name or '',
                     'client_phone': sale.client_phone or '',
                     'client_due_date': sale.client_due_date.isoformat() if sale.client_due_date else '',
-                    'status': sale.status
+                    'status': sale.status,
+                    'user': sale.user.username if sale.user else '',    # 🔹 loginda ishlatadigan username
                 },
                 'payment_types': [
                     {'value': 'cash', 'label': 'Naqd'},
@@ -822,7 +818,7 @@ class SaleListView(ListView):
         sold_products = models.SaleItem.objects.select_related('product', 'sale').filter(
             sale__status='paid'
         )
-
+     
         context = super().get_context_data(**kwargs)
         total = self.queryset.aggregate(total_price=Sum('total_price'))['total_price'] or 0
         count = self.queryset.count()
@@ -881,4 +877,91 @@ def sale_details_ajax(request, sale_id):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': f'Xatolik: {str(e)}'})
 
+class CustomUserListView(ListView):
+    model = models.CustomUser
+    template_name = "manager/custom_user/list.html"
+
+    context_object_name = "objects"
+    queryset = models.CustomUser.objects.filter(is_superuser=False).order_by("-id")
+    paginate_by = 10
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["role"] = True
+        return context
+
+    def get_queryset(self):
+        object_list = self.queryset
+        search = self.request.GET.get("search", None)
+        role = self.request.GET.get("role", None)
+        is_active = self.request.GET.get("user_status", None)
+        if search:
+            object_list = object_list.filter(
+                Q(first_name__icontains=search)
+                | Q(last_name__icontains=search)
+                | Q(username__icontains=search)
+            )
+        if role:
+            object_list = object_list.filter(role=role)
+        if is_active == "active":
+            object_list = object_list.filter(is_active=True)
+        if is_active == "inactive":
+            object_list = object_list.filter(is_active=False)
+        return object_list
+
+
+class CustomUserCreateView(CreateView):
+
+    model = models.CustomUser
+    form_class = forms.CustomUserForm
+    template_name = "manager/custom_user/create.html"
+    context_object_name = "object"
+    success_url = "common:user-list"
+    success_create_url = "common:user-create"
+
+
+class CustomUserUpdateView(UpdateView):
+
+    model = models.CustomUser
+    form_class = forms.CustomUserForm
+    template_name = "manager/custom_user/update.html"
+    context_object_name = "object"
+    success_url = "common:user-list"
+    success_update_url = "common:user-update"
+
+
+class CustomUserInfoUpdateView(UpdateView):
+    model = models.CustomUser
+    form_class = forms.CustomUserInfoForm
+    template_name = "manager/custom_user/info.html"
+    context_object_name = "object"
+    success_url = "common:user-list"
+
+
+class CustomUserDeleteView(DeleteView):
+    model = models.CustomUser
+    success_url = "common:user-list"
+
+
+class CustomUserView(View):
+    def get(self, request, pk):
+        return render(request, "manager/custom_user/info.html")
+
+    def post(self, request, pk):
+        user = get_object_or_404(models.CustomUser, pk=pk)
+        first_name = request.POST.get("first_name")
+        last_name = request.POST.get("last_name")
+        username = request.POST.get("username")
+        phone = request.POST.get("phone")
+        email = request.POST.get("email")
+        user.first_name, user.last_name, user.username, user.phone, user.email = (
+            first_name,
+            last_name,
+            username,
+            phone,
+            email,
+        )
+        user.save()
+
+        return redirect("common:home")
 

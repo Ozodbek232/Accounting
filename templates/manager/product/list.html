@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
     {% block content %}
+    {% load humanize %}
 <!--begin::Head-->
 <!--end::Head-->
 <!--begin::Body-->
@@ -65,9 +66,12 @@
                                                                 <td class="pl-0 py-6">
                                                                     <div class="d-flex align-items-center">
                                                                         <div class="mr-4 symbol symbol-40 symbol-light-success">
+                                                                          {% if object.image %}
+                                                                          <img class="symbol-label" src='{{object.image.url}}'>
+                                                                          {% else %}         
 <span class="symbol-label">{{ object.name|slice:':1' }}</span>
-{% endif %}
-                                                                       </div>
+                                                                            {% endif %}
+                                                                     </div>
                                                                        <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.name}}</span>      
                                                                     </div>
                                                                 </td>
@@ -75,7 +79,7 @@
                                                                     <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.category}}</span>
                                                                 </td>
 <td>
-                                                                    <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.price}}</span>
+                                                                    <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.price|intcomma}}</span>
                                                                 </td><td>
                                                                     <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.amount}}</span>
                                                                 </td><td>

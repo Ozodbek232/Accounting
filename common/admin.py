@@ -4,6 +4,7 @@ from common import models
 admin.site.register(models.Seller)
 admin.site.register(models.ProductCategory)
 admin.site.register(models.Product)
+admin.site.register(models.CashRegister)
 
 # admin.py uchun qo'shimcha
 from .models import Sale, SaleItem, Payment

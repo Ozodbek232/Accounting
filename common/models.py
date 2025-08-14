@@ -2,6 +2,10 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django_resized import ResizedImageField
 from django.db.models import Sum
+from django.contrib.auth.models import AbstractUser
+from django.db.models.deletion import SET_NULL, CASCADE
+from django.utils import timezone
+
 class Seller(models.Model):
     image = ResizedImageField(_("Maxsulot rasmi"), size=[60, 60], quality=99, crop=["middle", "center"], null=True, blank=True, upload_to="seller/%Y/%m",)
     first_name = models.CharField(_("Ismi"), max_length=40)
@@ -52,9 +56,62 @@ class Product(models.Model):
 from django.db import models
 from django.db.models import Sum
 
-from django.db import models
-from django.db.models import Sum
 
+class CustomUser(AbstractUser):
+    role_choices = [
+        (_("manager"), _("manager")),
+        (_("cashier"), _("kassir")),
+        (_("seller"), _("sotuvchi")),
+    ]
+    seller_profile = models.ForeignKey(
+        'common.Seller',
+        on_delete=SET_NULL,
+        null=True,
+        blank=True,
+        related_name=_("user_account"),
+    )
+    phone = models.CharField(_("phone"), max_length=256)
+    role = models.CharField(_("role"), choices=role_choices, max_length=256)
+
+from django.db import models
+from django.utils import timezone
+from django.conf import settings
+
+class CashRegister(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='cash_registers',
+        verbose_name="Kassa egasi"
+    )
+    opened_at = models.DateTimeField(default=timezone.now, verbose_name="Ochilgan vaqti")
+    total_cash = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Naqd summa")
+    total_card = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Karta summa")
+    total_sales = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Umumiy tushum")
+
+    class Meta:
+        verbose_name = "Kassa"
+        verbose_name_plural = "Kassalar"
+
+    def __str__(self):
+        return f"Kassa #{self.id} - {self.user.username}"
+
+    def add_payment(self, payment):
+        """To'lov qo'shish (faqat paid bo'lganlar uchun)"""
+        if payment.payment_type == 'cash':
+            self.total_cash += payment.amount
+        elif payment.payment_type == 'card':
+            self.total_card += payment.amount
+        self.total_sales = self.total_cash + self.total_card
+        self.save()
+
+    def reset_register(self):
+        """Kassani obnuleniye qilish"""
+        self.total_cash = 0
+        self.total_card = 0
+        self.total_sales = 0
+        self.opened_at = timezone.now()
+        self.save()
 
 class Sale(models.Model):
     SALE_STATUS_CHOICES = [
@@ -63,7 +120,7 @@ class Sale(models.Model):
         ('partial', 'Qisman to\'langan'),
         ('cancelled', 'Bekor qilingan'),
     ]
-
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, related_name='sales')
     client_full_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Mijoz ismi")
     client_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Telefon raqami")
     client_due_date = models.DateField(blank=True, null=True, verbose_name="To'lov muddati")
@@ -180,8 +237,13 @@ class Payment(models.Model):
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Sale ni yangilash
         self.sale.update_totals()
 
+        # Agar sotuv "paid" bo‘lsa va to‘lov turi cash yoki card bo‘lsa, kassaga qo‘shamiz
+        if self.sale.status == 'paid' and self.payment_type in ['cash', 'card']:
+            # Bu userning ochiq kassasini topamiz
+            cash_register = CashRegister.objects.filter(user=self.sale.user).order_by('-opened_at').first()
+            if cash_register:
+                cash_register.add_payment(self)
 
 

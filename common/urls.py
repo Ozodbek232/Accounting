@@ -1,5 +1,4 @@
 from django.urls import path
-
 from common import views
 
 
@@ -7,7 +6,16 @@ app_name = "common"
 
 
 urlpatterns = [
+    path('manager/user-list/', views.CustomUserListView.as_view(), name='user-list'),
+    path('manager/user-create/', views.CustomUserCreateView.as_view(), name='user-create'),
+    path('manager/user/<int:pk>/update', views.CustomUserUpdateView.as_view(), name='user-update'),
+    path('manager/user/<int:pk>/delete/', views.CustomUserDeleteView.as_view(), name='user-delete'),
+    
+    path('user/<int:pk>/info/', views.CustomUserView.as_view(), name='user-info' ),
+    path('manager/user/<int:pk>/info/update', views.CustomUserInfoUpdateView.as_view(), name='user-info-update' ),
+
     path("", views.HomeView.as_view(), name="home"),
+
     path("manager/seller/", views.SellerListView.as_view(), name="seller-list"),
     path("manager/seller/create/", views.SellerCreateView.as_view(), name="seller-create"),
     path("manager/seller/<int:pk>update/", views.SellerUpdateView.as_view(), name="seller-update"),

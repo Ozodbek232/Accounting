@@ -103,13 +103,15 @@
 </style>
 
 <div class="d-flex flex-column flex-root">
+               {% include 'parts/header-mobile.html' %}
+
     <div class="d-flex flex-row flex-column-fluid page">
         {% include 'parts/aside.html' with menu_parent='sale-list' menu_child='sale-pending' %}
         
         <div class="d-flex flex-column flex-row-fluid wrapper" id="kt_wrapper">
             {% include 'parts/header.html' %}
             <div class="content d-flex flex-column flex-column-fluid" id="kt_content">
-   
+
               <div class="d-flex flex-column-fluid">
                     <div class="container">
               <br>
@@ -117,7 +119,7 @@
               <br>
                         <!-- Statistika kartlari -->
                         <div class="row mb-6">
-                            <div class="col-xl-2">
+                            <div class="col-xl-3">
                                 <div class="card card-custom bg-danger card-stretch gutter-b">
                                     <div class="card-body">
                                         <div class="d-flex align-items-center justify-content-between">
@@ -130,21 +132,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-xl-2">
-                                <div class="card card-custom bg-danger card-stretch gutter-b">
-                                    <div class="card-body">
-                                        <div class="d-flex align-items-center justify-content-between">
-                                            <div>
-                                                <span class="text-white font-weight-bold font-size-h6">qarz</span>
-                                                <span class="text-white font-weight-bolder font-size-h2 mt-3" id="total-credit">0 UZS</span>
-                                            </div>
-                                            <i class="ki ki-wallet icon-3x text-white-50"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
- 
-                            <div class="col-xl-2">
+                            <div class="col-xl-3">
                                 <div class="card card-custom bg-success card-stretch gutter-b">
                                     <div class="card-body">
                                         <div class="d-flex align-items-center justify-content-between">
@@ -315,6 +303,10 @@
                             <div class="col-md-6 mt-2">
                                 <span class="text-dark-75 font-weight-bolder">Jami narx: </span>
                                 <span class="text-success font-weight-bold" id="modal-total-price"></span> UZS
+                            </div>
+<div class="col-md-6 mt-2">
+                                <span class="text-dark-75 font-weight-bolder">Sotuvchi </span>
+                                <span class="text-success font-weight-bold" id="modal-user"></span>
                             </div>
                             <div class="col-md-6 mt-2">
                                 <span class="text-dark-75 font-weight-bolder">Kutilayotgan To'lov: </span>
@@ -602,6 +594,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     document.getElementById('modal-sale-id').textContent = '#' + sale.id;
                     document.getElementById('modal-sale-date').textContent = sale.date;
                     document.getElementById('modal-total-price').textContent = sale.total_price.toLocaleString();
+                    document.getElementById('modal-user').textContent = sale.user.toLocaleString();
+
                     // pending_amount'ni qarz sifatida ko'rsatish
                     document.getElementById('modal-remaining-amount').textContent = sale.pending_amount.toLocaleString();
                     document.getElementById('max-payment-amount').textContent = sale.pending_amount.toLocaleString();
