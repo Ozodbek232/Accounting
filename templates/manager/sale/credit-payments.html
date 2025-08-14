@@ -1,51 +1,586 @@
-{% extends 'base.html' %} {% load static %} {% block content %}
-<!DOCTYPE html>
-<html lang="en">
-	<body id="kt_body" class="header-fixed header-mobile-fixed subheader-enabled subheader-fixed aside-enabled aside-fixed aside-minimize-hoverable page-loading">
-		<!--begin::Header Mobile-->
-    {% include 'parts/header-mobile.html' %}	
-		<!--end::Header Mobile-->
-		<div class="d-flex flex-column flex-root">
-			<!--begin::Page-->
-			<div class="d-flex flex-row flex-column-fluid page">
-				<!--begin::Aside-->
-        {% include 'parts/aside.html'  with menu_parent='sale-list' menu_child='sale-create' %}	
-				<!--end::Aside-->
-				<!--begin::Wrapper-->
-				<div class="d-flex flex-column flex-row-fluid wrapper" id="kt_wrapper">
-					<!--begin::Header-->
-          {% include 'parts/header.html' %}
-					<!--end::Header-->
-					<!--begin::Content-->
-					<div class="content d-flex flex-column flex-column-fluid" id="kt_content">
-						<!--begin::Entry-->
-						<div class="d-flex flex-column-fluid">
-							<!--begin::Container-->
-							<div class="container">
-								
-							</div>
-							<!--end::Container-->
-						</div>
-						<!--end::Entry-->
-					</div>
-					<!--end::Content-->
-					<!--begin::Footer-->
-          {% include 'parts/footer.html' %}
-					<!--end::Footer-->
-				</div>
-				<!--end::Wrapper-->
-			</div>
-			<!--end::Page-->
-		</div>
-		<!--end::Main-->
-		<!-- begin::User Panel-->
-		<!-- end::User Panel-->
-		<!--begin::Scrolltop-->
-    {% include 'parts/scrolltop.html' %}
-		<!--end::Scrolltop-->
-	</body>
-</html>
+{% extends 'base.html' %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.4.19/sweetalert2.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.4.19/sweetalert2.min.css">
+{% load static %}
+{% block content %}
+<body id="kt_body" class="header-fixed header-mobile-fixed aside-enabled aside-fixed aside-minimize-hoverable page-loading">
+  {% include 'parts/header-mobile.html' %}
+  <div class="d-flex flex-column flex-root">
+    <div class="d-flex flex-row flex-column-fluid page">
+      {% include 'parts/aside.html' %}
+      <div class="d-flex flex-column flex-row-fluid wrapper" id="kt_wrapper">
+        {% include 'parts/header.html' %}
+
+        <div class="content d-flex flex-column flex-column-fluid" id="kt_content">
+          <div class="d-flex flex-column-fluid">
+            <div class="container">
+              
+              <div class="card card-custom gutter-b">
+                <div class="card-header">
+                  <h3 class="card-title">
+                    <i class="fas fa-credit-card text-warning mr-2"></i>
+                    Nasiyali sotuvlar
+                  </h3>
+                  <div class="card-toolbar">
+                    <a href="" class="btn btn-primary">
+                      <i class="fas fa-plus"></i> Yangi sotuv
+                    </a>
+                  </div>
+                </div>
+
+                <div class="card-body">
+                  {% if credit_sales %}
+                  <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                      <thead class="bg-light">
+                        <tr>
+                          <th>ID</th>
+                          <th>Sana</th>
+                          <th>Klient</th>
+                          <th>Telefon</th>
+                          <th>Jami summa</th>
+                          <th>Nasiya</th>
+                          <th>To'lov muddati</th>
+                          <th>Sotuvchi</th>
+                          <th>Status</th>
+                          <th>Amallar</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for payment in credit_sales %}
+                        {% with payment.sale as sale %}
+                        <tr>
+                          <td>
+                            <span class="badge badge-primary">#{{ sale.id }}</span>
+                          </td>
+                          <td>
+                            <small>{{ payment.date|date:"d.m.Y H:i" }}</small>
+                          </td>
+                          <td>
+                            <strong>{{ sale.client_full_name|default:"—" }}</strong>
+                          </td>
+                          <td>
+                            {% if sale.client_phone %}
+                              <a href="tel:{{ sale.client_phone }}" class="text-primary">
+                                <i class="fas fa-phone"></i> {{ sale.client_phone }}
+                              </a>
+                            {% else %}
+                              —
+                            {% endif %}
+                          </td>
+                          <td>
+                            <strong class="text-dark">{{ sale.total_price|floatformat:0 }} so'm</strong>
+                          </td>
+                          <td>
+                            <span class="text-warning">{{ sale.credit_amount|floatformat:0 }} so'm</span>
+                          </td>
+                          <td>
+                            {% if sale.client_due_date %}
+                              {% now "Y-m-d" as today %}
+                              {% if sale.client_due_date|date:"Y-m-d" < today %}
+                                <span class="badge badge-danger">
+                                  <i class="fas fa-exclamation-triangle"></i>
+                                  {{ sale.client_due_date|date:"d.m.Y" }}
+                                </span>
+                              {% elif sale.client_due_date|date:"Y-m-d" == today %}
+                                <span class="badge badge-warning">
+                                  <i class="fas fa-clock"></i>
+                                  Bugun
+                                </span>
+                              {% else %}
+                                <span class="badge badge-info">
+                                  {{ sale.client_due_date|date:"d.m.Y" }}
+                                </span>
+                              {% endif %}
+                            {% else %}
+                              —
+                            {% endif %}
+                          </td>
+                          <td>
+                            {% if sale.seller %}
+                              <small class="text-muted">{{ sale.seller.name }} {{ sale.seller.surname }}</small>
+                            {% else %}
+                              <small class="text-muted">Noma'lum</small>
+                            {% endif %}
+                          </td>
+                          <td>
+                            {% if sale.client_due_date %}
+                              {% now "Y-m-d" as today %}
+                              {% if sale.client_due_date|date:"Y-m-d" < today %}
+                                <span class="badge badge-danger">Muddati o'tgan</span>
+                              {% elif sale.client_due_date|date:"Y-m-d" == today %}
+                                <span class="badge badge-warning">Bugun to'lash</span>
+                              {% elif sale.status == 'paid' %}
+                                 <span class="badge badge-success">To'langan</span>
+                              {% else %}
+                                <span class="badge badge-success">Faol</span>
+                              {% endif %}
+                            {% else %}
+                              <span class="badge badge-secondary">—</span>
+                            {% endif %}
+                          </td>
+                          <td>
+                            <div class="btn-group" role="group">
+                              <button class="btn btn-sm btn-light-info" 
+                                      onclick="viewSaleDetails({{ sale.id }})" 
+                                      title="Tafsilotlar">
+                                <i class="fas fa-eye"></i>
+                              </button>
+                              
+                              {% if sale.client_phone %}
+                              <a href="tel:{{ sale.client_phone }}" 
+                                 class="btn btn-sm btn-light-success" 
+                                 title="Qo'ng'iroq qilish">
+                                <i class="fas fa-phone"></i>
+                              </a>
+                              {% endif %}
+                              
+                              <button class="btn btn-sm btn-light-primary" 
+                                      onclick="makePayment({{ sale.id }}, {{ sale.credit_amount }})" 
+                                      title="To'lov qilish">
+                                <i class="fas fa-credit-card"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        {% endwith %}
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- Statistika -->
+                  <div class="row mt-4">
+                    <div class="col-md-12">
+                      <div class="alert alert-light-info">
+                        <h6><i class="fas fa-chart-bar"></i> Statistika:</h6>
+                        <div class="row">
+                          <div class="col-md-3">
+                            <strong>Jami nasiyali sotuvlar:</strong> {{ credit_sales.count }}
+                          </div>
+                          <div class="col-md-3">
+                            <strong>Jami nasiya summasi:</strong> 
+                            {% for payment in credit_sales %}
+                              {% if forloop.first %}
+                                {% with total_credit=0 %}
+                                  {% for p in credit_sales %}
+                                    {% if forloop.first %}{{ p.sale.credit_amount|add:total_credit|floatformat:0 }}{% endif %}
+                                  {% endfor %}
+                                {% endwith %}
+                              {% endif %}
+                            {% endfor %} so'm
+                          </div>
+                          <div class="col-md-3">
+                            <strong>Jami naqd to'lov:</strong> 
+                            {% for payment in credit_sales %}
+                              {% if forloop.first %}
+                                {% with total_cash=0 %}
+                                  {% for p in credit_sales %}
+                                    {% if forloop.first %}{{ p.sale.cash_amount|add:total_cash|floatformat:0 }}{% endif %}
+                                  {% endfor %}
+                                {% endwith %}
+                              {% endif %}
+                            {% endfor %} so'm
+                          </div>
+                          <div class="col-md-3">
+                            <strong>Jami sotuv:</strong> 
+                            {% for payment in credit_sales %}
+                              {% if forloop.first %}
+                                {% with total=0 %}
+                                  {% for p in credit_sales %}
+                                    {% if forloop.first %}{{ p.sale.total_price|add:total|floatformat:0 }}{% endif %}
+                                  {% endfor %}
+                                {% endwith %}
+                              {% endif %}
+                            {% endfor %} so'm
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {% else %}
+                    <div class="alert alert-warning text-center">
+                      <i class="fas fa-info-circle"></i> Hozircha nasiyali sotuvlar yo'q.
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        {% include 'parts/footer.html' %}
+      </div>
+    </div>
+  </div>
+</body>
+<!-- Formada bu bo'lishi kerak -->
+{% csrf_token %}
+<!-- yoki -->
+<input type="hidden" name="csrfmiddlewaretoken" value="...">
+<script>
+// CSRF token olish
+function getCSRFToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+// Sotuv tafsilotlarini ko'rish funksiyasi
+function viewSaleDetails(saleId) {
+    $.ajax({
+        url: `/sale/detail/${saleId}/`,
+        type: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            if (response.status === 'ok') {
+                const sale = response.sale;
+                
+                // Modal HTML yaratish
+                const modalHtml = `
+                    <div class="modal fade" id="saleDetailModal" tabindex="-1" role="dialog" aria-labelledby="saleDetailModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-lg" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="saleDetailModalLabel">
+                                        <i class="fas fa-receipt"></i> Sotuv tafsilotlari #${sale.id}
+                                    </h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <!-- Umumiy ma'lumotlar -->
+                                    <div class="row mb-4">
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-info-circle text-primary"></i> Umumiy ma'lumotlar</h6>
+                                            <table class="table table-borderless table-sm">
+                                                <tr>
+                                                    <td><strong>Sana:</strong></td>
+                                                    <td>${sale.date}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Sotuvchi:</strong></td>
+                                                    <td></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Jami summa:</strong></td>
+                                                    <td><strong>${parseInt(sale.total_amount).toLocaleString()} so'm</strong></td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-user text-info"></i> Klient ma'lumotlari</h6>
+                                            <table class="table table-borderless table-sm">
+                                                <tr>
+                                                    <td><strong>Ismi:</strong></td>
+                                                    <td>${sale.client_name || '—'}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Telefon:</strong></td>
+                                                    <td>
+                                                        ${sale.client_phone ? 
+                                                            `<a href="tel:${sale.client_phone}" class="text-primary">
+                                                                <i class="fas fa-phone"></i> ${sale.client_phone}
+                                                            </a>` : '—'
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- Maxsulotlar ro'yxati -->
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <h6><i class="fas fa-box text-warning"></i> Sotilgan maxsulotlar</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered table-hover">
+                                                    <thead class="bg-light">
+                                                        <tr>
+                                                            <th>Maxsulot</th>
+                                                            <th>Miqdor</th>
+                                                            <th>Narx</th>
+                                                            <th>Chegirma</th>
+                                                            <th>Jami</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        ${sale.items.map(item => `
+                                                            <tr>
+                                                                <td>${item.product_name}</td>
+                                                                <td><span class="badge badge-primary">${item.quantity}</span></td>
+                                                                <td>${parseInt(item.price).toLocaleString()} so'm</td>
+                                                                <td>
+                                                                    ${item.discount > 0 ? 
+                                                                        `<span class="text-danger">-${parseInt(item.discount).toLocaleString()} so'm</span>` : 
+                                                                        '—'
+                                                                    }
+                                                                </td>
+                                                                <td><strong>${parseInt(item.total_price).toLocaleString()} so'm</strong></td>
+                                                            </tr>
+                                                        `).join('')}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Yopish</button>
+                                    ${sale.client_phone ? 
+                                        `<a href="tel:${sale.client_phone}" class="btn btn-success">
+                                            <i class="fas fa-phone"></i> Qo'ng'iroq qilish
+                                        </a>` : ''
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Eski modalni o'chirish va yangisini qo'shish
+                $('#saleDetailModal').remove();
+                $('body').append(modalHtml);
+                $('#saleDetailModal').modal('show');
+                
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Xatolik!',
+                    text: response.message || 'Sotuv ma\'lumotlarini olishda xatolik yuz berdi'
+                });
+            }
+        },
+        error: function(xhr, status, error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Xatolik!',
+                text: 'Server bilan bog\'lanishda xatolik yuz berdi'
+            });
+        }
+    });
+}
+
+// To'lov qilish funksiyasi
+function makePayment(saleId, maxCreditAmount) {
+    Swal.fire({
+        title: 'To\'lov qilish',
+        html: `
+            <div class="form-group">
+                <label for="paymentAmount" class="form-label text-left d-block">
+                    <strong>To'lov summasi (maksimal: ${parseInt(maxCreditAmount).toLocaleString()} so'm):</strong>
+                </label>
+                <div class="input-group">
+                    <input type="number" 
+                           id="paymentAmount" 
+                           class="form-control" 
+                           placeholder="To'lov summasini kiriting"
+                           max="${maxCreditAmount}"
+                           min="1"
+                           step="1000"
+                           style="font-size: 16px; height: 45px;">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-primary" 
+                                type="button" 
+                                onclick="document.getElementById('paymentAmount').value = ${maxCreditAmount}">
+                            MAX
+                        </button>
+                    </div>
+                </div>
+                <small class="text-muted">Qismiy to'lov ham mumkin</small>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-check"></i> To\'lov qilish',
+        cancelButtonText: '<i class="fas fa-times"></i> Bekor qilish',
+        preConfirm: () => {
+            const amount = document.getElementById('paymentAmount').value;
+            if (!amount || parseFloat(amount) <= 0) {
+                Swal.showValidationMessage('Iltimos, to\'lov summasini kiriting');
+                return false;
+            }
+            if (parseFloat(amount) > parseFloat(maxCreditAmount)) {
+                Swal.showValidationMessage(`To'lov summasi ${parseInt(maxCreditAmount).toLocaleString()} so'mdan oshmasligi kerak`);
+                return false;
+            }
+            return Math.floor(parseFloat(amount));
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const paymentAmount = result.value;
+            const isFullPayment = paymentAmount >= parseFloat(maxCreditAmount);
+            const confirmText = isFullPayment 
+                ? 'Bu nasiyani to\'liq to\'lash hisoblanadi. Tasdiqlaysizmi?'
+                : `${parseInt(paymentAmount).toLocaleString()} so'm qismiy to'lov qilinadi. Tasdiqlaysizmi?`;
+
+            Swal.fire({
+                title: 'Tasdiqlash',
+                text: confirmText,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ha, to\'lov qilish',
+                cancelButtonText: 'Bekor qilish'
+            }).then((confirmResult) => {
+                if (confirmResult.isConfirmed) {
+                    $.ajax({
+                        url: `/sale/${saleId}/make-payment/`,  // yoki '/sale/make-payment/'
+                        type: 'POST',
+                        data: {
+                            sale_id: saleId,
+                            payment_amount: paymentAmount,
+                            is_full_payment: isFullPayment, // Bu qo'shimcha parameter
+                            csrfmiddlewaretoken: getCSRFToken()
+                        },
+                        dataType: 'json',
+                        beforeSend: function() {
+                            Swal.fire({
+                                title: 'Kutilmoqda...',
+                                text: 'To\'lov qilinmoqda',
+                                allowOutsideClick: false,
+                                allowEscapeKey: false,
+                                showConfirmButton: false,
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
+                            });
+                        },
+                        success: function(response) {
+                            if (response.status === 'ok') {
+                                const remainingCredit = response.remaining_credit || response.credit_amount || 0;
+                                const isCompletelyPaid = remainingCredit === 0 || response.is_paid === true || response.sale_status === 'paid';
+                                
+                                // Debug uchun console log
+                                console.log('Payment response:', response);
+
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Muvaffaqiyat!',
+                                    html: `
+                                        <p>To'lov muvaffaqiyatli qilindi!</p>
+                                        <div class="alert alert-success">
+                                            <strong>To'langan summa:</strong> ${parseInt(paymentAmount).toLocaleString()} so'm<br>
+                                            ${isCompletelyPaid 
+                                                ? '<strong class="text-success">✓ Nasiya to\'liq to\'landi!</strong>'
+                                                : `<strong>Qolgan nasiya:</strong> ${parseInt(remainingCredit).toLocaleString()} so'm`
+                                            }
+                                        </div>
+                                    `,
+                                    timer: 3000,
+                                    timerProgressBar: true,
+                                    showConfirmButton: true,
+                                    confirmButtonText: 'OK'
+                                }).then(() => {
+                                    if (isCompletelyPaid) {
+                                        // To'liq to'langan bo'lsa — Barcha sotuvlar sahifasiga o'tkazish
+                                        window.location.href = '/sale/'; 
+                                    } else {
+                                        // Qismiy to'lov bo'lsa — sahifani yangilash
+                                        window.location.reload();
+                                    }
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Xatolik!',
+                                    text: response.message || 'To\'lov qilishda xatolik yuz berdi',
+                                    confirmButtonText: 'OK'
+                                });
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Payment error:', error);
+                            console.error('Status:', status);
+                            console.error('XHR:', xhr);
+                            console.error('Response Text:', xhr.responseText);
+                            console.error('Status Code:', xhr.status);
+                            
+                            let errorMessage = 'Server bilan bog\'lanishda xatolik yuz berdi';
+                            
+                            // Xatolik turini aniqlash
+                            if (xhr.status === 0) {
+                                errorMessage = 'Internet aloqasi yo\'q yoki server ishlamayapti';
+                            } else if (xhr.status === 403) {
+                                errorMessage = 'CSRF token xatoligi. Sahifani yangilab qaytaring';
+                            } else if (xhr.status === 404) {
+                                errorMessage = 'URL topilmadi: /sale/make-payment/';
+                            } else if (xhr.status === 405) {
+                                errorMessage = 'POST metodi ruxsat etilmagan';
+                            } else if (xhr.status === 500) {
+                                errorMessage = 'Server ichki xatoligi';
+                            } else if (xhr.responseText) {
+                                try {
+                                    const response = JSON.parse(xhr.responseText);
+                                    errorMessage = response.message || errorMessage;
+                                } catch (e) {
+                                    errorMessage = `Server xatoligi (${xhr.status}): ${xhr.responseText.substring(0, 100)}`;
+                                }
+                            }
+                            
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Xatolik!',
+                                html: `
+                                    <p>${errorMessage}</p>
+                                    <small class="text-muted">
+                                        Status: ${xhr.status}<br>
+                                        Error: ${error}
+                                    </small>
+                                `,
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    });
+
+    // Enter tugmasi bilan ishlash
+    setTimeout(() => {
+        const input = document.getElementById('paymentAmount');
+        if (input) {
+            input.focus();
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const confirmBtn = document.querySelector('.swal2-confirm');
+                    if (confirmBtn) {
+                        confirmBtn.click();
+                    }
+                }
+            });
+        }
+    }, 100);
+}
 
 
+// Sahifa yuklanganda ishga tushiriladi
+$(document).ready(function() {
+    // Telefon raqamlarini formatlash
+    $('a[href^="tel:"]').on('click', function(e) {
+        const phone = $(this).attr('href').replace('tel:', '');
+        console.log('Qo\'ng\'iroq qilinmoqda:', phone);
+    });
+
+    // Jadval qatorlarini hover effekti
+    $('.table tbody tr').hover(
+        function() {
+            $(this).addClass('table-active');
+        },
+        function() {
+            $(this).removeClass('table-active');
+        }
+    );
+
+    // Muddati o'tgan sotuvlarni ajratib ko'rsatish
+    $('.badge-danger').closest('tr').addClass('table-danger');
+    $('.badge-warning').closest('tr').addClass('table-warning');
+});
+</script>
 
 {% endblock %}

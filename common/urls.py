@@ -27,24 +27,27 @@ urlpatterns = [
 
     
     # Asosiy sahifalar
-    path('sale/create', views.sale, name='sale-create'), 
-    path('sale/', views.SaleListView.as_view(), name='sale-list'),
-    # Sotuv korzinasi
-    path('add-payment/<int:sale_id>/', views.add_payment, name='add_payment'),
     path('search-products/', views.search_products, name='search_products'),
-    path('save-sale/', views.save_sale, name='save_sale'),
-    
-    # Kutilayotgan to'lovlar
-    path('pending-payments/', views.pending_payments_view, name='pending_payments'),
-    path('pending-payments-api/', views.pending_payments_api, name='pending_payments_api'),
-    path('payment-statistics-api/', views.payment_statistics_api, name='payment_statistics_api'),
-    
-    # To'lovlar bilan ishlash
-    path('create-payment-modal/<int:sale_id>/', views.create_payment_modal, name='create_payment_modal'),
-    path('add-payment/<int:sale_id>/', views.add_payment, name='add_payment'),
-    
 
+    # Sotuvlar
+    path('credit/sale/', views.credit_sale, name='sale_credit'),  # Yangi sotuv saqlash
+    path('sale/create/', views.sale, name='sale-create'),  # Yangi sotuv saqlash
+    path('sale/<int:sale_id>/make-payment/', views.make_payment, name='make_payment'),  # Nasiya to'lovi
+    path('add-payment/<int:sale_id>/', views.add_payment, name='add_payment'),  # Yangi to'lov qo'shish
+    path('save-sale/', views.save_sale, name='save_sale'),  # Yangi sotuv saqlash
+    path('sale/mark-as-paid/', views.mark_sale_as_paid, name='mark_sale_as_paid'),  # To'liq to'lash
+    path('sale/detail/<int:sale_id>/', views.sale_details_ajax, name='sale-detail'),
+    # Modal va API
+    path('create-payment-modal/<int:sale_id>/', views.create_payment_modal, name='payment_modal'),
+    path('pending-payments-api/', views.pending_payments_api, name='pending_payments_api'),  # JS bilan moslashtirildi
+    path('payment-statistics-api/', views.payment_statistics_api, name='payment_statistics_api'),
+
+
+    # Sahifalar
+    path('pending-payments/', views.pending_payments_view, name='pending_payments'),
+    path('sale/', views.SaleListView.as_view(), name='sale-list'),
 ]
+
 
 # Qo'shimcha view'lar (ixtiyoriy)
 """

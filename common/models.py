@@ -52,6 +52,10 @@ class Product(models.Model):
 from django.db import models
 from django.db.models import Sum
 
+from django.db import models
+from django.db.models import Sum
+
+
 class Sale(models.Model):
     SALE_STATUS_CHOICES = [
         ('pending', 'Kutilmoqda'),
@@ -59,7 +63,7 @@ class Sale(models.Model):
         ('partial', 'Qisman to\'langan'),
         ('cancelled', 'Bekor qilingan'),
     ]
-    
+
     client_full_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Mijoz ismi")
     client_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Telefon raqami")
     client_due_date = models.DateField(blank=True, null=True, verbose_name="To'lov muddati")
@@ -69,57 +73,68 @@ class Sale(models.Model):
     pending_amount = models.IntegerField(default=0, verbose_name="Kutilayotgan to'lov")
     remaining_amount = models.IntegerField(default=0, verbose_name="Qolgan qarz")
     status = models.CharField(max_length=20, choices=SALE_STATUS_CHOICES, default='pending', verbose_name="Status")
-    
+
     class Meta:
         verbose_name = "Sotuv"
         verbose_name_plural = "Sotuvlar"
         ordering = ['-date']
-    
+
     def __str__(self):
         return f"Sotuv #{self.id} - {self.date.strftime('%d.%m.%Y %H:%M')}"
-    
+
     def update_totals(self):
         """Sotuv umumiy summasini va to'lovlarni yangilash"""
-        # SaleItem'lardan umumiy narxni hisoblash
         total = self.items.aggregate(total_sum=Sum('total'))['total_sum'] or 0
         self.total_price = total
-        
-        # To'langan summa hisobi
-        total_paid = self.payments.aggregate(total_paid=Sum('amount'))['total_paid'] or 0
+
+        # Kredit (nasiya) hisobga olinmaydi
+        total_paid = self.payments.exclude(payment_type='credit').aggregate(
+            total_paid=Sum('amount')
+        )['total_paid'] or 0
         self.paid_amount = total_paid
-        
-        # Kutilayotgan to'lov va qarz hisobi
+
         self.pending_amount = max(self.total_price - self.paid_amount, 0)
-        self.remaining_amount = self.pending_amount  # Qarz = kutilayotgan to'lov
-        
-        # Status yangilash
+        self.remaining_amount = self.pending_amount
+
         if self.pending_amount == 0 and self.total_price > 0:
             self.status = 'paid'
         elif self.paid_amount > 0:
             self.status = 'partial'
         else:
             self.status = 'pending'
-        
-        self.save()
 
-   
+        self.save()
     @property
     def calculated_total_price(self):
-        """Hisoblangan umumiy narx"""
         return self.items.aggregate(total_sum=Sum('total'))['total_sum'] or 0
-    
+
     @property
     def is_fully_paid(self):
-        """To'liq to'langanligini tekshirish"""
         return self.remaining_amount == 0
-    
+
     @property
     def is_overdue(self):
-        """Muddati o'tganligini tekshirish"""
         from django.utils import timezone
         if self.client_due_date and self.status in ['pending', 'partial']:
             return self.client_due_date < timezone.now().date()
         return False
+
+    # --- Yangi qo‘shimcha propertylar ---
+    @property
+    def cash_amount(self):
+        return self.payments.filter(payment_type='cash').aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def card_amount(self):
+        return self.payments.filter(payment_type='card').aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def credit_amount(self):
+        return self.payments.filter(payment_type='credit').aggregate(total=Sum('amount'))['total'] or 0
+
+    @property
+    def bank_transfer_amount(self):
+        return self.payments.filter(payment_type='bank_transfer').aggregate(total=Sum('amount'))['total'] or 0
 
 class SaleItem(models.Model):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='items', verbose_name="Sotuv")
@@ -167,7 +182,6 @@ class Payment(models.Model):
         super().save(*args, **kwargs)
         # Sale ni yangilash
         self.sale.update_totals()
-
 
 
 
