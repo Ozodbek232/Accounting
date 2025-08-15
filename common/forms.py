@@ -203,4 +203,48 @@ class CashRegisterForm(forms.ModelForm):
             ),
         }
 
+class CashFlowCategoryForm(forms.ModelForm):
+    class Meta:
+        model = models.CashFlowCategory
+        fields=['title']
+        widgets ={
+            'title': forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                }
+            )
+        }
 
+
+class CashFlowForm(forms.ModelForm):
+    class Meta:
+        model = models.CashFlow
+        fields=['cash_register', 'flow_type', 'amount', 'category', 'created_at']
+        widgets ={
+            'cash_register': forms.Select(
+                    attrs={
+                        "class": 'form-control'
+                }
+            ),
+            'flow_type': forms.Select(
+                    attrs={
+                        "class": 'form-control'
+                }
+            ),
+            'amount': forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                }
+            ),
+            'category': forms.Select(
+                    attrs={
+                        "class": 'form-control'
+                }
+            ),
+            'created_at': forms.DateTimeInput(
+            attrs={
+                "class": "form-control",
+                "type": 'date'
+            }
+        ),
+    }

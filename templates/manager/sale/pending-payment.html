@@ -424,15 +424,17 @@
 </div>
 
 <script>
+// Fixed JavaScript code for the payment system
 document.addEventListener("DOMContentLoaded", function() {
     const csrfToken = '{{ csrf_token }}';
     let selectedPaymentType = '';
     let selectedSaleId = null;
+    let currentSaleData = null; // Store current sale data
 
     loadStatistics();
     loadSales();
 
-    // Qidiruv va filtrlar
+    // Search and filters
     document.getElementById('client-search').addEventListener('input', function() {
         clearTimeout(this.searchTimeout);
         this.searchTimeout = setTimeout(() => {
@@ -446,14 +448,18 @@ document.addEventListener("DOMContentLoaded", function() {
         fetch('/payment-statistics-api/')
             .then(response => response.json())
             .then(data => {
-                // Views'dan kelayotgan to'g'ri maydonlarni ishlatish
-                document.getElementById('total-pending').textContent = data.total_pending.toLocaleString() + ' UZS';
-                document.getElementById('total-credit').textContent = data.total_credit.toLocaleString() + ' UZS';
-                document.getElementById('today-payments').textContent = data.today_payments.toLocaleString() + ' UZS';
-                document.getElementById('pending-count').textContent = data.pending_count + data.partial_count;
-                document.getElementById('overdue-count').textContent = data.overdue_count;
+                if (data.error) {
+                    console.error('Statistics error:', data.error);
+                    return;
+                }
+                document.getElementById('total-pending').textContent = (data.total_pending || 0).toLocaleString() + ' UZS';
+                document.getElementById('today-payments').textContent = (data.today_payments || 0).toLocaleString() + ' UZS';
+                document.getElementById('pending-count').textContent = (data.pending_count || 0) + (data.partial_count || 0);
+                document.getElementById('overdue-count').textContent = data.overdue_count || 0;
             })
-            .catch(error => console.error('Statistika yuklanmadi:', error));
+            .catch(error => {
+                console.error('Statistics loading failed:', error);
+            });
     }
 
     function loadSales() {
@@ -475,11 +481,16 @@ document.addEventListener("DOMContentLoaded", function() {
             .then(response => response.json())
             .then(data => {
                 document.getElementById('loading-spinner').style.display = 'none';
-                renderSalesTable(data.sales);
+                if (data.error) {
+                    console.error('Sales loading error:', data.error);
+                    alert('Ma\'lumotlar yuklanishda xatolik: ' + data.error);
+                    return;
+                }
+                renderSalesTable(data.sales || []);
             })
             .catch(error => {
                 document.getElementById('loading-spinner').style.display = 'none';
-                console.error('Ma\'lumotlar yuklanmadi:', error);
+                console.error('Sales loading failed:', error);
                 alert('Ma\'lumotlar yuklanishda xatolik yuz berdi!');
             });
     }
@@ -489,7 +500,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const noDataMsg = document.getElementById('no-data-message');
         tbody.innerHTML = '';
 
-        if (sales.length === 0) {
+        if (!sales || sales.length === 0) {
             noDataMsg.style.display = 'block';
             return;
         }
@@ -504,15 +515,22 @@ document.addEventListener("DOMContentLoaded", function() {
             let statusText = 'Kutilmoqda';
             let rowClass = '';
             
-            if (sale.status === 'paid') {
+            // Fix status detection based on amounts
+            const totalPrice = parseFloat(sale.total_price) || 0;
+            const paidAmount = parseFloat(sale.paid_amount) || 0;
+            const pendingAmount = parseFloat(sale.pending_amount) || 0;
+            
+            if (paidAmount >= totalPrice) {
                 statusClass = 'sale-status-paid';
                 statusText = 'To\'langan';
-            } else if (sale.status === 'partial') {
+                sale.status = 'paid'; // Update status
+            } else if (paidAmount > 0) {
                 statusClass = 'sale-status-partial';
                 statusText = 'Qisman';
+                sale.status = 'partial'; // Update status
             }
 
-            // Muddat tekshiruvi
+            // Due date check
             if (sale.client_due_date && sale.status !== 'paid') {
                 const dueDate = new Date(sale.client_due_date);
                 const diffTime = dueDate - today;
@@ -524,6 +542,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     rowClass = 'due-soon-row';
                 }
             }
+
+            // Calculate percentage for progress bar
+            const paymentPercent = totalPrice > 0 ? Math.min((paidAmount / totalPrice) * 100, 100) : 0;
 
             row.className = rowClass;
             row.innerHTML = `
@@ -538,31 +559,33 @@ document.addEventListener("DOMContentLoaded", function() {
                             </span>
                         </div>
                         <div>
-                            <div class="font-weight-bolder text-dark-75 font-size-lg">${sale.client_name}</div>
+                            <div class="font-weight-bolder text-dark-75 font-size-lg">${sale.client_name || 'Noma\'lum'}</div>
                             ${sale.client_phone ? `<div class="text-muted">${sale.client_phone}</div>` : ''}
                             ${sale.client_due_date ? `<div class="text-muted"><i class="ki ki-calendar mr-1"></i>Muddat: ${new Date(sale.client_due_date).toLocaleDateString('uz-UZ')}</div>` : ''}
                         </div>
                     </div>
                 </td>
                 <td>
-                    <div class="font-weight-bolder">${sale.date.split(' ')[0]}</div>
-                    <div class="text-muted">${sale.date.split(' ')[1]}</div>
+                    <div class="font-weight-bolder">${sale.date ? sale.date.split(' ')[0] : ''}</div>
+                    <div class="text-muted">${sale.date ? sale.date.split(' ')[1] : ''}</div>
                 </td>
                 <td>
-                    <span class="font-weight-bolder font-size-lg text-dark-75">${sale.total_price.toLocaleString()} UZS</span>
+                    <span class="font-weight-bolder font-size-lg text-dark-75">${totalPrice.toLocaleString()} UZS</span>
                 </td>
                 <td>
-                    <span class="font-weight-bolder text-success">${sale.paid_amount.toLocaleString()} UZS</span>
-                    ${sale.paid_amount > 0 ? `<div class="progress mt-2" style="height: 4px;"><div class="progress-bar bg-success" style="width: ${(sale.paid_amount/sale.total_price*100)}%"></div></div>` : ''}
+                    <span class="font-weight-bolder text-success">${paidAmount.toLocaleString()} UZS</span>
+                    ${paidAmount > 0 ? `<div class="progress mt-2" style="height: 4px;">
+                        <div class="progress-bar bg-success" style="width: ${paymentPercent}%"></div>
+                    </div>` : ''}
                 </td>
                 <td>
-                    <span class="font-weight-bolder text-danger font-size-lg">${sale.pending_amount.toLocaleString()} UZS</span>
+                    <span class="font-weight-bolder text-danger font-size-lg">${pendingAmount.toLocaleString()} UZS</span>
                 </td>
                 <td>
                     <span class="${statusClass}">${statusText}</span>
                 </td>
                 <td class="text-right pr-0">
-                    ${sale.status !== 'paid' ? 
+                    ${pendingAmount > 0 ? 
                         `<button class="btn btn-sm btn-primary font-weight-bolder" onclick="openPaymentModal(${sale.id})">
                             <i class="ki ki-plus mr-1"></i>To'lov
                          </button>` : 
@@ -575,13 +598,13 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // Status bo'yicha filtr
+    // Status filter
     window.filterByStatus = function(status) {
         localStorage.setItem('status_filter', status);
         loadSales();
     };
 
-    // To'lov modalini ochish
+    // Open payment modal
     window.openPaymentModal = function(saleId) {
         selectedSaleId = saleId;
         
@@ -589,45 +612,77 @@ document.addEventListener("DOMContentLoaded", function() {
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
+                    currentSaleData = data.sale; // Store current sale data
                     const sale = data.sale;
+                    
+                    // Ensure pending_amount is calculated correctly
+                    const totalPrice = parseFloat(sale.total_price) || 0;
+                    const paidAmount = parseFloat(sale.paid_amount) || 0;
+                    const pendingAmount = Math.max(totalPrice - paidAmount, 0);
                     
                     document.getElementById('modal-sale-id').textContent = '#' + sale.id;
                     document.getElementById('modal-sale-date').textContent = sale.date;
-                    document.getElementById('modal-total-price').textContent = sale.total_price.toLocaleString();
-                    document.getElementById('modal-user').textContent = sale.user.toLocaleString();
-
-                    // pending_amount'ni qarz sifatida ko'rsatish
-                    document.getElementById('modal-remaining-amount').textContent = sale.pending_amount.toLocaleString();
-                    document.getElementById('max-payment-amount').textContent = sale.pending_amount.toLocaleString();
-                    document.getElementById('payment-amount').setAttribute('max', sale.pending_amount);
+                    document.getElementById('modal-total-price').textContent = totalPrice.toLocaleString();
+                    document.getElementById('modal-user').textContent = sale.user || '';
+                    document.getElementById('modal-remaining-amount').textContent = pendingAmount.toLocaleString();
+                    document.getElementById('max-payment-amount').textContent = pendingAmount.toLocaleString();
                     
-                    document.getElementById('client-name').value = sale.client_name;
-                    document.getElementById('client-phone').value = sale.client_phone;
-                    document.getElementById('client-due-date').value = sale.client_due_date;
+                    // Set payment input constraints
+                    const paymentInput = document.getElementById('payment-amount');
+                    paymentInput.setAttribute('max', pendingAmount);
+                    paymentInput.setAttribute('min', 1);
+                    paymentInput.value = ''; // Clear previous value
                     
-                    // Tezkor miqdorlar - pending_amount asosida
-                    generateQuickAmounts(sale.pending_amount);
+                    // Set client information
+                    document.getElementById('client-name').value = sale.client_name || '';
+                    document.getElementById('client-phone').value = sale.client_phone || '';
+                    document.getElementById('client-due-date').value = sale.client_due_date || '';
+                    
+                    // Generate quick amounts based on pending amount
+                    generateQuickAmounts(pendingAmount);
                     
                     $('#paymentModal').modal('show');
                 } else {
-                    alert('Xatolik: ' + data.message);
+                    alert('Xatolik: ' + (data.message || 'Noma\'lum xatolik'));
                 }
             })
             .catch(error => {
-                console.error('Modal ochilmadi:', error);
-                alert('Xatolik yuz berdi');
+                console.error('Modal opening failed:', error);
+                alert('Xatolik yuz berdi: ' + error.message);
             });
     };
 
-    // Tezkor miqdorlar generatsiya qilish - pending_amount asosida
+    // Generate quick amounts based on pending amount
     function generateQuickAmounts(pendingAmount) {
         const quickButtonsContainer = document.getElementById('quick-amount-buttons');
         quickButtonsContainer.innerHTML = '';
         
-        const amounts = [
-            100000, 200000, 500000, 1000000
-        ].filter(amount => amount <= pendingAmount);
+        if (pendingAmount <= 0) return;
         
+        // Generate smart quick amounts
+        const amounts = [];
+        
+        // Add standard amounts that are less than pending amount
+        const standardAmounts = [50000, 100000, 200000, 500000, 1000000];
+        standardAmounts.forEach(amount => {
+            if (amount < pendingAmount) {
+                amounts.push(amount);
+            }
+        });
+        
+        // Add 25%, 50%, 75% of pending amount
+        const percentages = [0.25, 0.5, 0.75];
+        percentages.forEach(percent => {
+            const amount = Math.round(pendingAmount * percent);
+            if (amount > 1000 && !amounts.includes(amount)) {
+                amounts.push(amount);
+            }
+        });
+        
+        // Sort amounts
+        amounts.sort((a, b) => a - b);
+        
+        // Create buttons
         amounts.forEach(amount => {
             const btn = document.createElement('button');
             btn.type = 'button';
@@ -635,18 +690,35 @@ document.addEventListener("DOMContentLoaded", function() {
             btn.textContent = amount.toLocaleString() + ' UZS';
             btn.onclick = () => {
                 document.getElementById('payment-amount').value = amount;
+                validatePaymentAmount();
             };
             quickButtonsContainer.appendChild(btn);
         });
     }
 
-    // To'liq miqdor o'rnatish
+    // Set maximum amount
     window.setMaxAmount = function() {
         const maxAmount = document.getElementById('payment-amount').getAttribute('max');
         document.getElementById('payment-amount').value = maxAmount;
+        validatePaymentAmount();
     };
 
-    // To'lov turi tanlash
+    // Validate payment amount
+    function validatePaymentAmount() {
+        const input = document.getElementById('payment-amount');
+        const amount = parseFloat(input.value) || 0;
+        const maxAmount = parseFloat(input.getAttribute('max')) || 0;
+        
+        if (amount > maxAmount) {
+            input.value = maxAmount;
+            alert(`To'lov miqdori ${maxAmount.toLocaleString()} UZS dan ko'p bo'lmasligi kerak!`);
+        }
+    }
+
+    // Payment amount input validation
+    document.getElementById('payment-amount').addEventListener('input', validatePaymentAmount);
+
+    // Payment type selection
     document.querySelectorAll('.payment-type-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.payment-type-btn').forEach(b => b.classList.remove('active'));
@@ -654,7 +726,7 @@ document.addEventListener("DOMContentLoaded", function() {
             this.classList.add('active');
             selectedPaymentType = this.getAttribute('data-payment-type');
             
-            // Nasiya bo'lsa mijoz ma'lumotlarini ko'rsatish
+            // Show client info section for credit
             const clientSection = document.getElementById('client-info-section');
             if (selectedPaymentType === 'credit') {
                 clientSection.style.display = 'block';
@@ -665,6 +737,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     window.savePayment = function() {
+        // Validation
         if (!selectedPaymentType) {
             alert('To\'lov turini tanlang!');
             return;
@@ -682,6 +755,7 @@ document.addEventListener("DOMContentLoaded", function() {
             return;
         }
 
+        // Credit validation
         if (selectedPaymentType === 'credit') {
             const clientName = document.getElementById('client-name').value.trim();
             const clientPhone = document.getElementById('client-phone').value.trim();
@@ -716,34 +790,40 @@ document.addEventListener("DOMContentLoaded", function() {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                // Muvaffaqiyatli xabar
-                const Toast = Swal.mixin({
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 3000,
-                    timerProgressBar: true
-                });
+                // Success notification
+                if (typeof Swal !== 'undefined') {
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
 
-                Toast.fire({
-                    icon: 'success',
-                    title: 'To\'lov muvaffaqiyatli qo\'shildi!',
-                    text: `${amount.toLocaleString()} UZS ${getPaymentTypeText(selectedPaymentType)} orqali to'landi`
-                });
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'To\'lov muvaffaqiyatli qo\'shildi!',
+                        text: `${amount.toLocaleString()} UZS ${getPaymentTypeText(selectedPaymentType)} orqali to'landi`
+                    });
+                } else {
+                    alert(`To'lov muvaffaqiyatli qo'shildi! ${amount.toLocaleString()} UZS ${getPaymentTypeText(selectedPaymentType)} orqali to'landi`);
+                }
 
                 $('#paymentModal').modal('hide');
+                
+                // Reload data
                 loadSales();
                 loadStatistics();
                 
-                // Formani tozalash
+                // Reset form
                 resetPaymentForm();
             } else {
-                alert('Xatolik: ' + data.message);
+                alert('Xatolik: ' + (data.message || 'Noma\'lum xatolik'));
             }
         })
         .catch(error => {
-            console.error('To\'lov saqlanmadi:', error);
-            alert('Xatolik yuz berdi!');
+            console.error('Payment saving failed:', error);
+            alert('To\'lov saqlashda xatolik yuz berdi: ' + error.message);
         })
         .finally(() => {
             saveBtn.disabled = false;
@@ -751,7 +831,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     };
 
-    // To'lov turi matnini olish
+    // Get payment type text
     function getPaymentTypeText(paymentType) {
         const types = {
             'cash': 'Naqd',
@@ -762,7 +842,7 @@ document.addEventListener("DOMContentLoaded", function() {
         return types[paymentType] || paymentType;
     }
 
-    // Formani tozalash
+    // Reset payment form
     function resetPaymentForm() {
         document.getElementById('payment-amount').value = '';
         document.getElementById('payment-description').value = '';
@@ -770,14 +850,15 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('client-info-section').style.display = 'none';
         selectedPaymentType = '';
         selectedSaleId = null;
+        currentSaleData = null;
     }
 
-    // Modal yopilganda formani tozalash
+    // Reset form when modal is closed
     $('#paymentModal').on('hidden.bs.modal', function() {
         resetPaymentForm();
     });
 
-    // Enter klavishasi bosilganda to'lov saqlash
+    // Save payment on Enter key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && $('#paymentModal').hasClass('show')) {
             e.preventDefault();
@@ -785,7 +866,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    // Telefon raqami formatini o'zgartirish
+    // Format phone number
     document.getElementById('client-phone').addEventListener('input', function(e) {
         let value = e.target.value.replace(/\D/g, '');
         if (value.startsWith('998')) {
@@ -794,16 +875,6 @@ document.addEventListener("DOMContentLoaded", function() {
             value = '+998' + value;
         }
         e.target.value = value;
-    });
-
-    // Miqdor kiritishda vergulni qo'shish
-    document.getElementById('payment-amount').addEventListener('input', function(e) {
-        const value = parseFloat(e.target.value) || 0;
-        if (value > 0) {
-            // Live formatting qilish
-            const formatted = value.toLocaleString();
-            // Input'da raqamni saqlash, leqin ko'rsatishda formatli ko'rsatish uchun
-        }
     });
 });
 </script>

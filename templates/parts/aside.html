@@ -191,7 +191,7 @@
           </div>
         </li>
         <li
-          class="menu-item menu-item-submenu {% if menu_parent == 'seller-list' %} menu-item-open {% endif %}"
+          class="menu-item menu-item-submenu {% if menu_parent == 'cash-list' %} menu-item-open {% endif %}"
           aria-haspopup="true"
           data-menu-toggle="hover"
         >
@@ -234,12 +234,12 @@
             <i class="menu-arrow"></i>
             <ul class="menu-subnav">
               <li
-                class="menu-item menu-item-submenu {% if menu_child == 'seller-create' %} menu-item-active {% endif %}"
+                class="menu-item menu-item-submenu {% if menu_child == 'cash-create' %} menu-item-active {% endif %}"
                 aria-haspopup="true"
                 data-menu-toggle="hover"
               >
                 <a
-                  href="{% url 'common:seller-create' %}"
+                  href="{% url 'common:cash-create' %}"
                   class="menu-link menu-toggle"
                 >
                   <i class="menu-bullet menu-bullet-line">
@@ -249,18 +249,48 @@
                 </a>
               </li>
               <li
-                class="menu-item menu-item-submenu {% if menu_child == 'seller-all' %} menu-item-active {% endif %}"
+                class="menu-item menu-item-submenu {% if menu_child == 'cash-all' %} menu-item-active {% endif %}"
                 aria-haspopup="true"
                 data-menu-toggle="hover"
               >
                 <a
-                  href="{% url 'common:seller-list' %}"
+                  href="{% url 'common:cash-list' %}"
                   class="menu-link menu-toggle"
                 >
                   <i class="menu-bullet menu-bullet-line">
                     <span></span>
                   </i>
-                  <span class="menu-text"></span>
+                  <span class="menu-text">Barcha kassalar</span>
+                </a>
+              </li>
+<li
+                class="menu-item menu-item-submenu {% if menu_child == '' %} menu-item-active {% endif %}"
+                aria-haspopup="true"
+                data-menu-toggle="hover"
+              >
+                <a
+                  href=""
+                  class="menu-link menu-toggle"
+                >
+                  <i class="menu-bullet menu-bullet-line">
+                    <span></span>
+                  </i>
+                  <span class="menu-text">kassa ochish</span>
+                </a>
+              </li>
+              <li
+                class="menu-item menu-item-submenu {% if menu_child == '' %} menu-item-active {% endif %}"
+                aria-haspopup="true"
+                data-menu-toggle="hover"
+              >
+                <a
+                  href=""
+                  class="menu-link menu-toggle"
+                >
+                  <i class="menu-bullet menu-bullet-line">
+                    <span></span>
+                  </i>
+                  <span class="menu-text">Barcha kassalar</span>
                 </a>
               </li>
             </ul>

@@ -33,10 +33,14 @@ urlpatterns = [
     path("manager/product/create/", views.ProductCreateView.as_view(), name="product-create"),
     path("manager/product/<int:pk>update/", views.ProductUpdateView.as_view(), name="product-update"),
     path("manager/product/<int:pk>delete/", views.ProductDeleteView.as_view(), name="product-delete"),
-    
+    path('cashflow/add/', views.add_cashflow, name='add_cashflow'),
+
+    # Kassa dashboard
     path("manager/cash/create/", views.CashRegisterCreateView.as_view(), name="cash-create" ),
     path("manager/cash/list/", views.CashRegisterListView.as_view(), name="cash-list" ),
     path("manager/cash/<int:pk>/update/", views.CashRegisterUpdateView.as_view(), name="cash-update" ),
+    path('manager/cash/<int:pk>/delete/', views.CashRegisterDeleteView.as_view(), name='cash-delete'),
+
     path('search-products/', views.search_products, name='search_products'),
     path('cash-register/<int:register_id>/reset/', views.reset_cash_register, name='cash-reset'),
     # Sotuvlar
@@ -59,100 +63,3 @@ urlpatterns = [
 ]
 
 
-# Qo'shimcha view'lar (ixtiyoriy)
-"""
-def sales_cart_view(request):
-    '''Sotuv korzinasi sahifasi'''
-    return render(request, 'manager/sale/cart.html')
-
-def dashboard_view(request):
-    '''Asosiy sahifa'''
-    return render(request, 'manager/dashboard.html')
-
-@csrf_exempt
-def sale_details(request, sale_id):
-    '''Sotuv tafsilotlarini ko'rish'''
-    if request.method == "GET":
-        try:
-            sale = get_object_or_404(models.Sale, pk=sale_id)
-            
-            # Sotuv elementlari
-            items = []
-            for item in sale.items.all():
-                items.append({
-                    'product_name': item.product.name,
-                    'quantity': item.quantity,
-                    'price': item.price,
-                    'discount': item.discount,
-                    'total': item.total
-                })
-            
-            # To'lovlar tarixi
-            payments = []
-            for payment in sale.payments.all():
-                payments.append({
-                    'payment_type': payment.get_payment_type_display(),
-                    'amount': payment.amount,
-                    'date': payment.date.strftime('%d.%m.%Y %H:%M'),
-                    'description': payment.description
-                })
-            
-            return JsonResponse({
-                'status': 'success',
-                'sale': {
-                    'id': sale.id,
-                    'client_name': sale.client_full_name,
-                    'client_phone': sale.client_phone,
-                    'date': sale.date.strftime('%d.%m.%Y %H:%M'),
-                    'total_price': sale.total_price,
-                    'paid_amount': sale.paid_amount,
-                    'remaining_amount': sale.remaining_amount,
-                    'status': sale.get_status_display(),
-                    'items': items,
-                    'payments': payments
-                }
-            })
-            
-        except Exception as e:
-            return JsonResponse({
-                'status': 'error',
-                'message': str(e)
-            }, status=500)
-    
-    return JsonResponse({'status': 'error'}, status=400)
-
-@csrf_exempt
-def delete_payment(request, payment_id):
-    '''To'lovni o'chirish (faqat admin uchun)'''
-    if request.method == "POST":
-        try:
-            payment = get_object_or_404(models.Payment, pk=payment_id)
-            sale = payment.sale
-            
-            # Faqat admin yoki superuser o'chira oladi
-            if not request.user.is_staff:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Ruxsat yo\'q'
-                }, status=403)
-            
-            payment.delete()
-            
-            # Sale'ni yangilash
-            sale.update_totals()
-            
-            return JsonResponse({
-                'status': 'success',
-                'message': 'To\'lov o\'chirildi',
-                'remaining_amount': sale.remaining_amount,
-                'paid_amount': sale.paid_amount
-            })
-            
-        except Exception as e:
-            return JsonResponse({
-                'status': 'error',
-                'message': str(e)
-            }, status=500)
-    
-    return JsonResponse({'status': 'error'}, status=400)
-"""

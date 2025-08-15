@@ -46,7 +46,7 @@
                                                 {% include 'parts/search.html' %}
                                                 <!--begin::Table-->
                                                 <div class="table-responsive">
-                                                    {% if objects %}
+                                                    {% if cash_flows %}
                                                     <table class="table table-head-custom table-head-bg table-borderless table-vertical-center">
                                                         <thead>
                                                             <tr class="text-left text-uppercase">
@@ -59,36 +59,13 @@
                                                             </tr>
                                                         </thead>
                                                         <tbody>
-                                                            {% for object in objects %}
-                                                            {% url 'common:product-update' object.id as u %}
-                                                            {% url 'common:product-delete' object.id as d %}
+                                                            {% for flow in cash_flows %}
                                                             <tr>
-                                                                <td class="pl-0 py-6">
-                                                                    <div class="d-flex align-items-center">
-                                                                        <div class="mr-4 symbol symbol-40 symbol-light-success">
-                                                                          {% if object.image %}
-                                                                          <img class="symbol-label" src='{{object.image.url}}'>
-                                                                          {% else %}         
-<span class="symbol-label">{{ object.name|slice:':1' }}</span>
-                                                                            {% endif %}
-                                                                     </div>
-                                                                       <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.name}}</span>      
-                                                                    </div>
-                                                                </td>
-                                                                <td>
-                                                                    <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.category}}</span>
-                                                                </td>
-<td>
-                                                                    <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.price|intcomma}}</span>
-                                                                </td><td>
-                                                                    <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.amount}}</span>
-                                                                </td><td>
-                                                                    <span class="text-dark-75 font-weight-bolder d-block font-size-lg">{{object.date_published}}</span>
-                                                                </td>
-                                                                <td nowrap="nowrap">
-                                                                        {% include "parts/actions.html" with update_url=u delete_url=d %}
-                                                                </td>
-                                                            </tr>
+                                                                    <tr>
+        <td>{{ flow.created_at }}</td>
+        <td>{{ flow.get_flow_type_display }}</td>
+        <td>{{ flow.amount }}</td>
+        <td>{{ flow.description }}</td>                                                            </tr>
                                                             {% endfor %}
                                                     </table>
                                                 </div>

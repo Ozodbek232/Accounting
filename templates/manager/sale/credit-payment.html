@@ -32,7 +32,7 @@
                 <div class="card-body">
                   {% if credit_sales %}
                   <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
+                    <table class="table table-bordered table-hover" id="creditSalesTable">
                       <thead class="bg-light">
                         <tr>
                           <th>ID</th>
@@ -50,7 +50,7 @@
                       <tbody>
                         {% for payment in credit_sales %}
                         {% with payment.sale as sale %}
-                        <tr>
+                        <tr data-sale-id="{{ sale.id }}">
                           <td>
                             <span class="badge badge-primary">#{{ sale.id }}</span>
                           </td>
@@ -72,8 +72,8 @@
                           <td>
                             <strong class="text-dark">{{ sale.total_price|floatformat:0 }} so'm</strong>
                           </td>
-                          <td>
-                            <span class="text-warning">{{ sale.credit_amount|floatformat:0 }} so'm</span>
+                          <td class="credit-amount-cell">
+                            <span class="text-warning credit-amount" data-amount="{{ sale.credit_amount }}">{{ sale.credit_amount|floatformat:0 }} so'm</span>
                           </td>
                           <td>
                             {% if sale.client_due_date %}
@@ -104,20 +104,20 @@
                               <small class="text-muted">Noma'lum</small>
                             {% endif %}
                           </td>
-                          <td>
+                          <td class="status-cell">
                             {% if sale.client_due_date %}
                               {% now "Y-m-d" as today %}
                               {% if sale.client_due_date|date:"Y-m-d" < today %}
-                                <span class="badge badge-danger">Muddati o'tgan</span>
+                                <span class="badge badge-danger sale-status">Muddati o'tgan</span>
                               {% elif sale.client_due_date|date:"Y-m-d" == today %}
-                                <span class="badge badge-warning">Bugun to'lash</span>
+                                <span class="badge badge-warning sale-status">Bugun to'lash</span>
                               {% elif sale.status == 'paid' %}
-                                 <span class="badge badge-success">To'langan</span>
+                                 <span class="badge badge-success sale-status">To'langan</span>
                               {% else %}
-                                <span class="badge badge-success">Faol</span>
+                                <span class="badge badge-success sale-status">Faol</span>
                               {% endif %}
                             {% else %}
-                              <span class="badge badge-secondary">—</span>
+                              <span class="badge badge-secondary sale-status">—</span>
                             {% endif %}
                           </td>
                           <td>
@@ -136,7 +136,7 @@
                               </a>
                               {% endif %}
                               
-                              <button class="btn btn-sm btn-light-primary" 
+                              <button class="btn btn-sm btn-light-primary payment-btn" 
                                       onclick="makePayment({{ sale.id }}, {{ sale.credit_amount }})" 
                                       title="To'lov qilish">
                                 <i class="fas fa-credit-card"></i>
@@ -217,10 +217,10 @@
     </div>
   </div>
 </body>
-<!-- Formada bu bo'lishi kerak -->
+
+<!-- CSRF Token -->
 {% csrf_token %}
-<!-- yoki -->
-<input type="hidden" name="csrfmiddlewaretoken" value="...">
+
 <script>
 // CSRF token olish
 function getCSRFToken() {
@@ -363,28 +363,90 @@ function viewSaleDetails(saleId) {
     });
 }
 
-// To'lov qilish funksiyasi
+// Jadval qatorini yangilash funksiyasi
+function updateRowData(saleId, newData) {
+    const row = $(`tr[data-sale-id="${saleId}"]`);
+    if (row.length) {
+        // Nasiya miqdorini yangilash
+        if (newData.credit_amount !== undefined) {
+            const creditCell = row.find('.credit-amount-cell');
+            const creditSpan = creditCell.find('.credit-amount');
+            const newCreditAmount = parseFloat(newData.credit_amount);
+            
+            creditSpan.attr('data-amount', newCreditAmount);
+            creditSpan.text(newCreditAmount.toLocaleString() + ' so\'m');
+            
+            // Nasiya 0 bo'lsa, qatorni yashirish yoki o'chirish
+            if (newCreditAmount <= 0) {
+                creditSpan.html('<span class="text-success">✓ To\'langan</span>');
+                
+                // To'lov tugmasini disable qilish
+                row.find('.payment-btn').prop('disabled', true).removeClass('btn-light-primary').addClass('btn-light-secondary');
+                
+                // Statusni yangilash
+                row.find('.sale-status').removeClass('badge-danger badge-warning badge-info').addClass('badge-success').text('To\'langan');
+                
+                // 3 soniyadan keyin qatorni yashirish
+                setTimeout(() => {
+                    row.fadeOut(500, function() {
+                        $(this).remove();
+                        
+                        // Agar barcha qatorlar yo'qolsa, xabar ko'rsatish
+                        if ($('#creditSalesTable tbody tr:visible').length === 0) {
+                            $('#creditSalesTable').replaceWith(`
+                                <div class="alert alert-warning text-center">
+                                    <i class="fas fa-info-circle"></i> Hozircha nasiyali sotuvlar yo'q.
+                                </div>
+                            `);
+                        }
+                    });
+                }, 3000);
+            }
+        }
+        
+        // To'lov tugmasini yangilash
+        if (newData.credit_amount > 0) {
+            const paymentBtn = row.find('.payment-btn');
+            paymentBtn.attr('onclick', `makePayment(${saleId}, ${newData.credit_amount})`);
+        }
+    }
+}
+
+// To'lov qilish funksiyasi (to'g'irlangan)
 function makePayment(saleId, maxCreditAmount) {
+    // Joriy nasiya miqdorini olish
+    const currentCreditAmount = $(`tr[data-sale-id="${saleId}"] .credit-amount`).attr('data-amount') || maxCreditAmount;
+    const actualMaxCredit = parseFloat(currentCreditAmount);
+    
+    if (actualMaxCredit <= 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Diqqat!',
+            text: 'Bu sotuvda nasiya qolmagan'
+        });
+        return;
+    }
+    
     Swal.fire({
         title: 'To\'lov qilish',
         html: `
             <div class="form-group">
                 <label for="paymentAmount" class="form-label text-left d-block">
-                    <strong>To'lov summasi (maksimal: ${parseInt(maxCreditAmount).toLocaleString()} so'm):</strong>
+                    <strong>To'lov summasi (maksimal: ${parseInt(actualMaxCredit).toLocaleString()} so'm):</strong>
                 </label>
                 <div class="input-group">
                     <input type="number" 
                            id="paymentAmount" 
                            class="form-control" 
                            placeholder="To'lov summasini kiriting"
-                           max="${maxCreditAmount}"
+                           max="${actualMaxCredit}"
                            min="1"
                            step="1000"
                            style="font-size: 16px; height: 45px;">
                     <div class="input-group-append">
                         <button class="btn btn-outline-primary" 
                                 type="button" 
-                                onclick="document.getElementById('paymentAmount').value = ${maxCreditAmount}">
+                                onclick="document.getElementById('paymentAmount').value = ${actualMaxCredit}">
                             MAX
                         </button>
                     </div>
@@ -403,8 +465,8 @@ function makePayment(saleId, maxCreditAmount) {
                 Swal.showValidationMessage('Iltimos, to\'lov summasini kiriting');
                 return false;
             }
-            if (parseFloat(amount) > parseFloat(maxCreditAmount)) {
-                Swal.showValidationMessage(`To'lov summasi ${parseInt(maxCreditAmount).toLocaleString()} so'mdan oshmasligi kerak`);
+            if (parseFloat(amount) > parseFloat(actualMaxCredit)) {
+                Swal.showValidationMessage(`To'lov summasi ${parseInt(actualMaxCredit).toLocaleString()} so'mdan oshmasligi kerak`);
                 return false;
             }
             return Math.floor(parseFloat(amount));
@@ -412,7 +474,7 @@ function makePayment(saleId, maxCreditAmount) {
     }).then((result) => {
         if (result.isConfirmed) {
             const paymentAmount = result.value;
-            const isFullPayment = paymentAmount >= parseFloat(maxCreditAmount);
+            const isFullPayment = paymentAmount >= parseFloat(actualMaxCredit);
             const confirmText = isFullPayment 
                 ? 'Bu nasiyani to\'liq to\'lash hisoblanadi. Tasdiqlaysizmi?'
                 : `${parseInt(paymentAmount).toLocaleString()} so'm qismiy to'lov qilinadi. Tasdiqlaysizmi?`;
@@ -428,13 +490,14 @@ function makePayment(saleId, maxCreditAmount) {
                 cancelButtonText: 'Bekor qilish'
             }).then((confirmResult) => {
                 if (confirmResult.isConfirmed) {
+                    // To'lov so'rovi yuborish
                     $.ajax({
-                        url: `/sale/${saleId}/make-payment/`,  // yoki '/sale/make-payment/'
+                        url: `/sale/${saleId}/make-payment/`,
                         type: 'POST',
                         data: {
                             sale_id: saleId,
                             payment_amount: paymentAmount,
-                            is_full_payment: isFullPayment, // Bu qo'shimcha parameter
+                            is_full_payment: isFullPayment,
                             csrfmiddlewaretoken: getCSRFToken()
                         },
                         dataType: 'json',
@@ -451,12 +514,18 @@ function makePayment(saleId, maxCreditAmount) {
                             });
                         },
                         success: function(response) {
+                            console.log('Payment response:', response);
+                            
                             if (response.status === 'ok') {
-                                const remainingCredit = response.remaining_credit || response.credit_amount || 0;
+                                const remainingCredit = parseFloat(response.remaining_credit || response.credit_amount || 0);
                                 const isCompletelyPaid = remainingCredit === 0 || response.is_paid === true || response.sale_status === 'paid';
                                 
-                                // Debug uchun console log
-                                console.log('Payment response:', response);
+                                // Jadval qatorini yangilash
+                                updateRowData(saleId, {
+                                    credit_amount: remainingCredit,
+                                    paid_amount: response.paid_amount,
+                                    is_paid: isCompletelyPaid
+                                });
 
                                 Swal.fire({
                                     icon: 'success',
@@ -471,19 +540,12 @@ function makePayment(saleId, maxCreditAmount) {
                                             }
                                         </div>
                                     `,
-                                    timer: 3000,
+                                    timer: isCompletelyPaid ? 4000 : 2000,
                                     timerProgressBar: true,
                                     showConfirmButton: true,
                                     confirmButtonText: 'OK'
-                                }).then(() => {
-                                    if (isCompletelyPaid) {
-                                        // To'liq to'langan bo'lsa — Barcha sotuvlar sahifasiga o'tkazish
-                                        window.location.href = '/sale/'; 
-                                    } else {
-                                        // Qismiy to'lov bo'lsa — sahifani yangilash
-                                        window.location.reload();
-                                    }
                                 });
+                                
                             } else {
                                 Swal.fire({
                                     icon: 'error',
@@ -494,21 +556,21 @@ function makePayment(saleId, maxCreditAmount) {
                             }
                         },
                         error: function(xhr, status, error) {
-                            console.error('Payment error:', error);
-                            console.error('Status:', status);
-                            console.error('XHR:', xhr);
-                            console.error('Response Text:', xhr.responseText);
-                            console.error('Status Code:', xhr.status);
+                            console.error('Payment error:', {
+                                status: xhr.status,
+                                statusText: xhr.statusText,
+                                responseText: xhr.responseText,
+                                error: error
+                            });
                             
                             let errorMessage = 'Server bilan bog\'lanishda xatolik yuz berdi';
                             
-                            // Xatolik turini aniqlash
                             if (xhr.status === 0) {
                                 errorMessage = 'Internet aloqasi yo\'q yoki server ishlamayapti';
                             } else if (xhr.status === 403) {
                                 errorMessage = 'CSRF token xatoligi. Sahifani yangilab qaytaring';
                             } else if (xhr.status === 404) {
-                                errorMessage = 'URL topilmadi: /sale/make-payment/';
+                                errorMessage = 'URL topilmadi. Tekshiring: /sale/make-payment/';
                             } else if (xhr.status === 405) {
                                 errorMessage = 'POST metodi ruxsat etilmagan';
                             } else if (xhr.status === 500) {
@@ -518,7 +580,7 @@ function makePayment(saleId, maxCreditAmount) {
                                     const response = JSON.parse(xhr.responseText);
                                     errorMessage = response.message || errorMessage;
                                 } catch (e) {
-                                    errorMessage = `Server xatoligi (${xhr.status}): ${xhr.responseText.substring(0, 100)}`;
+                                    errorMessage = `Server xatoligi (${xhr.status})`;
                                 }
                             }
                             
@@ -557,7 +619,6 @@ function makePayment(saleId, maxCreditAmount) {
         }
     }, 100);
 }
-
 
 // Sahifa yuklanganda ishga tushiriladi
 $(document).ready(function() {

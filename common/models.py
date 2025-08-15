@@ -107,8 +107,9 @@ class CashRegister(models.Model):
         self.save()
 
 # models.py - CashRegister class ichiga qo'shing
+# models.py - CashRegister class ichiga qo'shing
     def reset_register(self):
-        """Kassani reset qilish va shu kassadagi sotuvlarni o'chirish"""
+        """Kassani reset qilish - faqat sotuvlarni o'chirish, mahsulotlar qaytarilmasin"""
         from django.db import transaction
         from django.utils import timezone
 
@@ -117,33 +118,22 @@ class CashRegister(models.Model):
             paid_sales = self.cash.filter(status='paid')
             
             reset_count = paid_sales.count()
-            print(f"Reset qilinadigan sotuvlar: {reset_count} ta")
             
-            # Sotilgan mahsulotlarning miqdorini ombor zahirasiga qaytarish
-            returned_products = []
+            # Debug uchun sotuvlar ro'yxati
+            deleted_sales_info = []
             for sale in paid_sales:
-                print(f"Sale #{sale.id} o'chirilmoqda...")
-                
-                for sale_item in sale.items.all():
-                    product = sale_item.product
-                    old_amount = product.amount
-                    
-                    # Sotilgan miqdorni mahsulot zahirasiga qaytarish
-                    product.amount += sale_item.quantity
-                    product.save()
-                    
-                    returned_products.append({
-                        'product': product.name,
-                        'returned_qty': sale_item.quantity,
-                        'old_amount': old_amount,
-                        'new_amount': product.amount
-                    })
-                    
-                    print(f"  {product.name}: {old_amount} + {sale_item.quantity} = {product.amount}")
+                sale_info = {
+                    'sale_id': sale.id,
+                    'date': sale.date.strftime('%d.%m.%Y %H:%M'),
+                    'total_price': sale.total_price,
+                    'items_count': sale.items.count(),
+                    'client': sale.client_full_name or 'Noma\'lum'
+                }
+                deleted_sales_info.append(sale_info)
 
             # Sotuvlarga tegishli barcha ma'lumotlarni o'chirish
             if paid_sales.exists():
-                # Payment va SaleItem o'chirish
+                # Payment va SaleItem o'chirish (mahsulot miqdori QAYTARILMAYDI!)
                 from common.models import Payment, SaleItem
                 Payment.objects.filter(sale__in=paid_sales).delete()
                 SaleItem.objects.filter(sale__in=paid_sales).delete()
@@ -158,16 +148,53 @@ class CashRegister(models.Model):
             self.opened_at = timezone.now()
             self.save()
             
-            print(f"Kassa #{self.id} muvaffaqiyatli reset qilindi!")
-            print(f"O'chirilgan sotuvlar: {reset_count} ta")
-            print(f"Qaytarilgan mahsulotlar: {len(returned_products)} ta")
-            
+           
             return {
                 'reset_count': reset_count,
-                'returned_products': returned_products
+                'deleted_sales': deleted_sales_info
             }
 
 
+# HTML template uchun JavaScript
+"""
+function resetCashRegister(registerId) {
+    if (!confirm('DIQQAT! Kassani reset qilsangiz, barcha sotuvlar o\'chiriladi va mahsulotlar ochib ketadi. Davom etasizmi?')) {
+        return;
+    }
+    
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            xhr.setRequestHeader("X-CSRFToken", $('[name=csrfmiddlewaretoken]').val());
+        }
+    });
+    
+    $.post(`/cash-register/${registerId}/reset/`, {}, function(response) {
+        if (response.status === 'success') {
+            alert(`✅ ${response.message}\n\n📊 O'chirilgan sotuvlar: ${response.details.reset_count} ta`);
+            location.reload();
+        } else {
+            alert('❌ Xatolik: ' + response.message);
+        }
+    }).fail(function() {
+        alert('❌ Server bilan bog\'lanishda xatolik yuz berdi');
+    });
+}
+
+function closeCashRegister(registerId) {
+    if (!confirm('Kassani yopmoqchimisiz? (Ma\'lumotlar saqlanadi)')) {
+        return;
+    }
+    
+    $.post(`/cash-register/${registerId}/close/`, {}, function(response) {
+        if (response.status === 'success') {
+            alert(`✅ Kassa yopildi!\n\n💰 Jami: ${response.details.total_sales} so'm\n📦 Sotuvlar: ${response.details.sales_count} ta`);
+            location.reload();
+        } else {
+            alert('❌ Xatolik: ' + response.message);
+        }
+    });
+}
+"""
 
 
 class Sale(models.Model):
@@ -304,4 +331,48 @@ class Payment(models.Model):
             if cash_register:
                 cash_register.add_payment(self)
 
+class CashFlowCategory(models.Model):
+    title = models.CharField("kategoriya")
+    class Meta:
+        db_table = "Kassa kategoriyasi"
+        verbose_name = "Kassa kategoriyasi"
+        verbose_name_plural = "Kassa kategoriyalari"
+    def __str__(self):
+            return self.title
+
+
+
+class CashFlow(models.Model):
+    FLOW_TYPE_CHOICES = [
+        ('income', 'Kirim'),
+        ('expense', 'Chiqim'),
+    ]
+
+    cash_register = models.ForeignKey(
+        CashRegister,
+        on_delete=models.CASCADE,
+        related_name='cash_flows',
+        verbose_name="Kassa"
+    )
+    flow_type = models.CharField(max_length=10, choices=FLOW_TYPE_CHOICES, verbose_name="Turi")
+    amount = models.IntegerField(verbose_name="Summa")
+    category = models.ForeignKey(CashFlowCategory, null=True, on_delete=models.SET_NULL, verbose_name="kategoriya")
+    created_at = models.DateTimeField(verbose_name="Sana")
+    class Meta:
+        verbose_name = "Kassa harakati"
+        verbose_name_plural = "Kassa harakatlari"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_flow_type_display()} - {self.amount} UZS"
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Kassa summasini avtomatik yangilash
+        if self.flow_type == 'income':
+            self.cash_register.total_cash += self.amount
+        else:  # expense
+            self.cash_register.total_cash -= self.amount
+        self.cash_register.total_sales = self.cash_register.total_cash + self.cash_register.total_card
+        self.cash_register.save()
 

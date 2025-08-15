@@ -221,7 +221,7 @@ def credit_sale(request):
         'total': total
     }
     
-    return render(request, 'manager/sale/credit-payments.html', context)
+    return render(request, 'manager/sale/credit-payment.html', context)
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
@@ -285,7 +285,6 @@ def make_payment(request, sale_id):
         sale.update_totals()
         sale.refresh_from_db()
         
-        # Debug ma'lumotlari
        
         # Nasiya summasini tekshirish (credit to'lov turi bo'yicha)
         current_credit = sale.credit_amount
@@ -359,7 +358,6 @@ def make_payment(request, sale_id):
             from django.conf import settings
             if settings.DEBUG:
                 import traceback
-                print(f"Payment traceback: {traceback.format_exc()}")
         except:
             pass
         
@@ -454,119 +452,6 @@ def add_payment(request, sale_id):
     except json.JSONDecodeError:
         return JsonResponse({'status': 'error', 'message': 'Noto\'g\'ri JSON format'}, status=400)
     except Exception as e:
-        print(f"Add payment error: {str(e)}")
-        return JsonResponse({'status': 'error', 'message': f'Server xatoligi: {str(e)}'}, status=500)
-
-
-# Yanada yaxshi variant - kassani majburiy ochish bilan
-@csrf_exempt 
-def add_payment_v2(request, sale_id):
-    """To'lov qo'shish (kassani avtomatik ochish bilan)"""
-    if request.method != "POST":
-        return JsonResponse({'status': 'error', 'message': 'Noto\'g\'ri metod'}, status=400)
-
-    try:
-        sale = get_object_or_404(Sale, pk=sale_id)
-        data = json.loads(request.body)
-
-        payment_type = data.get('payment_type')
-        amount = Decimal(data.get('amount', 0))
-        description = data.get('description', '')
-
-        # Validatsiya
-        if not payment_type or payment_type not in dict(Payment.PAYMENT_TYPE_CHOICES):
-            return JsonResponse({'status': 'error', 'message': 'To\'lov turini to\'g\'ri tanlang'}, status=400)
-            
-        if amount <= 0:
-            return JsonResponse({'status': 'error', 'message': 'To\'lov summasi 0 dan katta bo\'lishi kerak'}, status=400)
-
-        # Maksimal to'lov summasi tekshiruvi
-        sale.update_totals()  # Eng so'ngi holatni olish
-        max_payment = sale.total_price - sale.paid_amount
-        
-        if max_payment <= 0:
-            return JsonResponse({
-                'status': 'error', 
-                'message': 'Bu sotuv allaqachon to\'liq to\'langan'
-            }, status=400)
-            
-        if amount > max_payment:
-            return JsonResponse({
-                'status': 'error', 
-                'message': f'Maksimal to\'lov summasi: {max_payment:,} so\'m'
-            }, status=400)
-
-        with transaction.atomic():
-            # Kassani topish yoki yaratish
-            cash_register = CashRegister.objects.filter(
-                user=request.user,
-                closed_at__isnull=True
-            ).order_by('-opened_at').first()
-
-            # Agar ochiq kassa yo'q bo'lsa, yangi kassa ochish
-            if not cash_register:
-                cash_register = CashRegister.objects.create(
-                    user=request.user,
-                    total_cash=0,
-                    total_card=0,
-                    total_sales=0
-                )
-                print(f"Yangi kassa ochildi: #{cash_register.id}")
-
-            # Sale ni kassaga bog'lash
-            if not sale.cash_register:
-                sale.cash_register = cash_register
-                sale.save()
-
-            # To'lov yaratish
-            payment = Payment.objects.create(
-                sale=sale,
-                payment_type=payment_type,
-                amount=int(amount),  # IntegerField uchun
-                description=description or f'{dict(Payment.PAYMENT_TYPE_CHOICES)[payment_type]} to\'lovi'
-            )
-
-            # Sotuv holatini yangilash
-            sale.refresh_from_db()
-
-            # Statistika uchun ma'lumotlar
-            payment_info = {
-                'payment_id': payment.id,
-                'payment_type': payment_type,
-                'payment_type_display': payment.get_payment_type_display(),
-                'amount': payment.amount,
-                'date': payment.date.strftime('%d.%m.%Y %H:%M')
-            }
-
-            # Kassaga qo'shish (paid bo'lganda va cash/card bo'lsa)
-            added_to_cash = False
-            if sale.status == 'paid' and payment_type in ['cash', 'card']:
-                cash_register.add_payment(payment)
-                added_to_cash = True
-
-        return JsonResponse({
-            'status': 'success',
-            'message': 'To\'lov muvaffaqiyatli qo\'shildi',
-            'data': {
-                'sale_id': sale.id,
-                'sale_status': sale.status,
-                'sale_status_display': sale.get_status_display(),
-                'total_price': sale.total_price,
-                'paid_amount': sale.paid_amount,
-                'pending_amount': sale.pending_amount,
-                'is_fully_paid': sale.is_fully_paid,
-                'cash_register_id': cash_register.id,
-                'added_to_cash': added_to_cash,
-                'payment': payment_info
-            }
-        })
-
-    except json.JSONDecodeError:
-        return JsonResponse({'status': 'error', 'message': 'Noto\'g\'ri JSON format'}, status=400)
-    except Exception as e:
-        print(f"Add payment error: {str(e)}")
-        import traceback
-        traceback.print_exc()
         return JsonResponse({'status': 'error', 'message': f'Server xatoligi: {str(e)}'}, status=500)
 
 
@@ -586,7 +471,6 @@ def mark_sale_as_paid(request):
         sale = get_object_or_404(Sale, pk=sale_id)
         sale.update_totals()
         
-        print(f"MARK AS PAID: sale_id={sale_id}, pending={sale.pending_amount}")
         
         # Agar qarz yo'q bo'lsa
         if sale.pending_amount <= 0:
@@ -616,7 +500,6 @@ def mark_sale_as_paid(request):
         })
         
     except Exception as e:
-        print(f"Mark as paid error: {str(e)}")
         return JsonResponse({
             'status': 'error', 
             'message': f'Xatolik yuz berdi: {str(e)}'
@@ -632,7 +515,6 @@ def save_sale(request):
             cart_items = data.get('cart_items', {})
             payment_data = data.get('payment', {})
             
-            print(f"SAVE SALE: {len(cart_items)} items, payment_type: {payment_data.get('payment_type')}")
             
             if not cart_items:
                 return JsonResponse({'status': 'error', 'message': 'Korzina bo\'sh'}, status=400)
@@ -724,7 +606,6 @@ def save_sale(request):
             # update_totals() Payment yaratilganda avtomatik chaqiriladi
             sale.refresh_from_db()
             
-            print(f"Sale created: ID={sale.id}, status={sale.status}, pending={sale.pending_amount}")
             
             # Javob - HTML template bilan mos keluvchi response
             return JsonResponse({
@@ -739,7 +620,6 @@ def save_sale(request):
             })
             
         except Exception as e:
-            print(f"Save sale error: {str(e)}")
             return JsonResponse({
                 'status': 'error', 
                 'message': f'Xatolik yuz berdi: {str(e)}'
@@ -879,12 +759,7 @@ def payment_statistics_api(request):
             pending_amount__gt=0
         ).aggregate(total=Sum('pending_amount'))['total'] or 0
         
-       
-        # Bugun to'langan
-        today_payments = Payment.objects.filter(
-            date__date=today
-        ).aggregate(total=Sum('amount'))['total'] or 0
-        
+        today_payments = Payment.objects.filter(date__date=today).aggregate(total=Sum('amount'))['total'] or 0
         # Status bo'yicha sanoq
         pending_count = Sale.objects.filter(status='pending').count()
         partial_count = Sale.objects.filter(status='partial').count()
@@ -1142,6 +1017,10 @@ class CashRegisterCreateView(CreateView):
 
 from django.http import JsonResponse
 
+class CashRegisterDeleteView(DeleteView):
+    model = models.CashRegister
+    success_url = "common:cash-list"
+
 
 # views.py - CashRegisterUpdateView ni yangilang
 class CashRegisterUpdateView(UpdateView):
@@ -1159,13 +1038,7 @@ class CashRegisterUpdateView(UpdateView):
             # Reset metodini chaqirish
             result = self.object.reset_register()
             
-            return JsonResponse({
-                'status': 'success',
-                'message': f'Kassa muvaffaqiyatli reset qilindi! {result["reset_count"]} ta sotuv o\'chirildi va mahsulotlar ombor zahirasiga qaytarildi.',
-                'reset_count': result['reset_count'],
-                'returned_products': result['returned_products'][:5]  # Birinchi 5 tasini ko'rsatish
-            })
-            
+            return redirect("common:cash-list")            
         except Exception as e:
             return JsonResponse({
                 'status': 'error',
@@ -1173,10 +1046,10 @@ class CashRegisterUpdateView(UpdateView):
             }, status=500)
 
 
-# Yoki alohida reset view yarating
+# Alohida reset view
 @csrf_exempt
 def reset_cash_register(request, register_id):
-    """Kassa reset qilish alohida view"""
+    """Kassa reset qilish - faqat sotuvlarni o'chirish"""
     if request.method == "POST":
         try:
             from django.shortcuts import get_object_or_404
@@ -1192,23 +1065,22 @@ def reset_cash_register(request, register_id):
                     'message': 'Sizda bu kassani reset qilish huquqi yo\'q'
                 }, status=403)
             
-            # Reset qilish
+            # Reset qilish (mahsulotlar qaytarilmaydi!)
             result = cash_register.reset_register()
             
             return JsonResponse({
                 'status': 'success',
-                'message': f'Kassa #{cash_register.id} muvaffaqiyatli reset qilindi!',
+                'message': f'Kassa #{cash_register.id} muvaffaqiyatli reset qilindi! Sotuvlar o\'chirildi, mahsulotlar ochib ketdi.',
                 'details': {
                     'reset_count': result['reset_count'],
-                    'returned_products_count': len(result['returned_products']),
                     'cash_register_id': cash_register.id,
-                    'user': cash_register.user.username
+                    'user': cash_register.user.username,
+                    'reset_time': cash_register.opened_at.strftime('%d.%m.%Y %H:%M')
                 },
-                'returned_products': result['returned_products'][:10]  # Birinchi 10 tani ko'rsatish
+                'deleted_sales': result['deleted_sales'][:10]  # Birinchi 10 tani ko'rsatish
             })
             
         except Exception as e:
-            print(f"Cash register reset error: {str(e)}")
             import traceback
             traceback.print_exc()
             
@@ -1222,4 +1094,105 @@ def reset_cash_register(request, register_id):
         'message': 'Faqat POST so\'rov qabul qilinadi'
     }, status=400)
 
+
+# Bonus: Kassani yopish funksiyasi
+@csrf_exempt
+def close_cash_register(request, register_id):
+    """Kassani yopish (reset qilmasdan)"""
+    if request.method == "POST":
+        try:
+            cash_register = get_object_or_404(CashRegister, pk=register_id)
+            
+            if request.user != cash_register.user and not request.user.is_superuser:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Sizda bu kassani yopish huquqi yo\'q'
+                }, status=403)
+            
+            if cash_register.closed_at:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Bu kassa allaqachon yopilgan'
+                }, status=400)
+            
+            # Kassani yopish (ma'lumotlar saqlanadi)
+            from django.utils import timezone
+            cash_register.closed_at = timezone.now()
+            cash_register.save()
+            
+            # Statistika
+            sales_count = cash_register.cash.filter(status='paid').count()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Kassa #{cash_register.id} yopildi',
+                'details': {
+                    'total_cash': cash_register.total_cash,
+                    'total_card': cash_register.total_card,
+                    'total_sales': cash_register.total_sales,
+                    'sales_count': sales_count,
+                    'opened_at': cash_register.opened_at.strftime('%d.%m.%Y %H:%M'),
+                    'closed_at': cash_register.closed_at.strftime('%d.%m.%Y %H:%M')
+                }
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=500)
+    
+    return JsonResponse({'status': 'error'}, status=400)
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from .forms import CashFlowForm
+from .models import CashFlow, CashRegister
+from django.shortcuts import render, redirect
+from .models import CashFlow, CashRegister
+from .forms import CashFlowForm
+from django.db.models import Sum
+from django.contrib import messages
+
+def add_cashflow(request):
+    # Ochiq kassani olish
+    cash_register = CashRegister.objects.filter(closed_at__isnull=True).first()
+
+    if request.method == "POST":
+        form = CashFlowForm(request.POST)
+        if form.is_valid():
+            cashflow = form.save(commit=False)
+            cashflow.cash_register = cash_register  # hozirgi kassa
+            cashflow.save()
+
+            # Kassani yangilash
+            if cashflow.flow_type == 'income':
+                cash_register.total_cash += cashflow.amount
+            elif cashflow.flow_type == 'expense':
+                cash_register.total_cash -= cashflow.amount
+            cash_register.save()
+
+            messages.success(request, "Tranzaksiya qo‘shildi!")
+            return redirect('common:add_cashflow')
+    else:
+        form = CashFlowForm()
+
+    # Tranzaksiyalar ro‘yxati
+    transactions = CashFlow.objects.filter(cash_register=cash_register).order_by('-created_at')
+
+    # Hisob-kitoblar
+    total_cash = cash_register.total_cash if cash_register else 0
+    daily_income = transactions.filter(flow_type='income').aggregate(Sum('amount'))['amount__sum'] or 0
+    daily_expense = transactions.filter(flow_type='expense').aggregate(Sum('amount'))['amount__sum'] or 0
+
+    context = {
+        'form': form,
+        'transactions': transactions,
+        'total_cash': total_cash,
+        'daily_income': daily_income,
+        'daily_expense': daily_expense,
+    }
+
+    return render(request, 'manager/in-out/create.html', context)
 

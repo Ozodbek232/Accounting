@@ -5,7 +5,7 @@ admin.site.register(models.Seller)
 admin.site.register(models.ProductCategory)
 admin.site.register(models.Product)
 admin.site.register(models.CashRegister)
-
+admin.site.register(models.CashFlowCategory)
 # admin.py uchun qo'shimcha
 from .models import Sale, SaleItem, Payment
 
@@ -41,3 +41,5 @@ class PaymentAdmin(admin.ModelAdmin):
     list_display = ['sale', 'payment_type', 'amount', 'date']
     list_filter = ['payment_type', 'date']
     search_fields = ['sale__client_full_name', 'description']
+
+
