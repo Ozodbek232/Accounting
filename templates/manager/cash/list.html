@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load static %}
+    {% block content %}
+<!--begin::Head-->
+<!--end::Head-->
+<!--begin::Body-->
+<body id="kt_body" class="header-fixed header-mobile-fixed subheader-enabled subheader-fixed aside-enabled aside-fixed aside-minimize-hoverable page-loading">
+    <!--begin::Main-->
+    <!--begin::Header Mobile-->
+    {% include "parts/header-mobile.html" %}
+    <!--end::Header Mobile-->
+    <div class="d-flex flex-column flex-root">
+        <!--begin::Page-->
+        <div class="d-flex flex-row flex-column-fluid page">
+            <!--begin::Aside-->
+            {% include "parts/aside.html" with menu_parent="product-list" menu_child="category-list"%}
+            <!--end::Aside-->
+            <!--begin::Wrapper-->
+            <div class="d-flex flex-column flex-row-fluid wrapper" id="kt_wrapper">
+                <!--begin::Header-->
+                {% include "parts/header.html" %}
+                <!--end::Header-->
+                <!--begin::Content-->
+                <div class="content d-flex flex-column flex-column-fluid" id="kt_content">
+                    <div class="d-flex flex-column-fluid">
+                        <div class="container">
+                            <div class="card card-custom">
+                                <div class="card-header flex-wrap border-0 pt-6 pb-0">
+                                    <div class="card-title">
+                                        <h3 class="card-label"> All Project Categories
+                                    </div>
+                                    <div class="card-toolbar">
+                                        <!--begin::Dropdown-->
+                                        <!--end::Dropdown-->
+                                        <!--begin::Button-->
+                                        <a href="" class="btn btn-primary font-weight-bolder">
+                                            <span class="svg-icon svg-icon-md">
+                                                <!--begin::Svg Icon | path:assets/media/svg/icons/Design/Flatten.svg-->
+                                                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24px" height="24px" viewBox="0 0 24 24" version="1.1">
+                                                    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                                                        <rect x="0" y="0" width="24" height="24" />
+                                                        <circle fill="#000000" cx="9" cy="15" r="6" />
+                                                        <path d="M8.8012943,7.00241953 C9.83837775,5.20768121 11.7781543,4 14,4 C17.3137085,4 20,6.6862915 20,10 C20,12.2218457 18.7923188,14.1616223 16.9975805,15.1987057 C16.9991904,15.1326658 17,15.0664274 17,15 C17,10.581722 13.418278,7 9,7 C8.93357256,7 8.86733422,7.00080962 8.8012943,7.00241953 Z" fill="#000000" opacity="0.3" />
+                                                    </g>
+                                                </svg>
+                                                <!--end::Svg Icon-->
+                                            </span>Add</a>
+                                        <!--end::Button-->
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <!--begin: Search Form-->
+                                    <!--begin::Search Form-->
+                                   {% include "parts/search.html" %} 
+                                    <!--end: Search Form-->
+                                    <!--begin: Datatable-->
+                                    {% if page_obj %}
+                                    
+                                    
+                                    <table class="table table-bordered table-hover table-checkable" id="kt_datatable" style="margin-top: 13px !important">
+                                        <thead>
+                                            <tr>
+                                                <th>Title</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for object in objects %}
+
+                                            {% url 'common:cash-update' object.id as update %}
+                                            {% url 'common:cash-delete' object.pk as delete %}
+                                            <tr>
+                                                <td>{{object}}</td>
+                                                <td nowrap="nowrap">{% include 'parts/actions.html' with update_url=update delete_url=delete%}</td>
+                                            </tr>
+                                            {% endfor %}   
+
+                                        </tbody>
+                                    </table>
+                                    {%else%}
+                                    {% include "parts/nothing-found.html" %}
+                                    {%endif%}
+{% if page_obj.paginator.num_pages > 1 %}
+                                    {% include "parts/pagination.html" %}
+                                        <!--end: Datatable-->
+                                    {% endif %}
+                                    <!--end: Datatable-->
+                                </div>
+                            </div>
+                        </div> <!-- .container -->
+                    </div> <!-- .d-flex.flex-column-fluid -->
+
+                </div>
+                <!--end::Content-->
+                <!--begin::Footer-->
+                {% include "parts/footer.html" %}
+                <!--end::Footer-->
+            </div>
+            <!--end::Wrapper-->
+        </div>
+        <!--end::Page-->
+    </div>
+    <!--end::Main-->
+    <!-- begin::User Panel-->
+    {% include "parts/user-panel.html" %}
+    <!--begin::Quick Cart-->
+    <!--end::Quick Cart-->
+    <!--begin::Quick Panel-->
+    <!--end::Quick Panel-->
+    <!--begin::Chat Panel-->
+    <!--end::Chat Panel-->
+    <!--begin::Scrolltop-->
+    {% include "parts/scrolltop.html" %}
+    <!--end::Scrolltop-->
+    <!--begin::Sticky Toolbar-->
+    <!--end::Sticky Toolbar-->
+    <!--begin::Demo Panel-->
+    <!--end::Demo Panel-->
+    {# Django Pagination #}
+    {# Pagination end #}
+    <!--end::Page Scripts-->
+
+</body>
+<!--end::Body-->
+
+
+
+
+{% endblock %}
+
+

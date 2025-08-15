@@ -85,6 +85,7 @@ class CashRegister(models.Model):
         verbose_name="Kassa egasi"
     )
     opened_at = models.DateTimeField(default=timezone.now, verbose_name="Ochilgan vaqti")
+    closed_at = models.DateTimeField(null=True, blank=True, verbose_name="Yopilgan vaqti")
     total_cash = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Naqd summa")
     total_card = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Karta summa")
     total_sales = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="Umumiy tushum")
@@ -105,13 +106,69 @@ class CashRegister(models.Model):
         self.total_sales = self.total_cash + self.total_card
         self.save()
 
+# models.py - CashRegister class ichiga qo'shing
     def reset_register(self):
-        """Kassani obnuleniye qilish"""
-        self.total_cash = 0
-        self.total_card = 0
-        self.total_sales = 0
-        self.opened_at = timezone.now()
-        self.save()
+        """Kassani reset qilish va shu kassadagi sotuvlarni o'chirish"""
+        from django.db import transaction
+        from django.utils import timezone
+
+        with transaction.atomic():
+            # Aynan shu kassaga tegishli paid sotuvlarni topish
+            paid_sales = self.cash.filter(status='paid')
+            
+            reset_count = paid_sales.count()
+            print(f"Reset qilinadigan sotuvlar: {reset_count} ta")
+            
+            # Sotilgan mahsulotlarning miqdorini ombor zahirasiga qaytarish
+            returned_products = []
+            for sale in paid_sales:
+                print(f"Sale #{sale.id} o'chirilmoqda...")
+                
+                for sale_item in sale.items.all():
+                    product = sale_item.product
+                    old_amount = product.amount
+                    
+                    # Sotilgan miqdorni mahsulot zahirasiga qaytarish
+                    product.amount += sale_item.quantity
+                    product.save()
+                    
+                    returned_products.append({
+                        'product': product.name,
+                        'returned_qty': sale_item.quantity,
+                        'old_amount': old_amount,
+                        'new_amount': product.amount
+                    })
+                    
+                    print(f"  {product.name}: {old_amount} + {sale_item.quantity} = {product.amount}")
+
+            # Sotuvlarga tegishli barcha ma'lumotlarni o'chirish
+            if paid_sales.exists():
+                # Payment va SaleItem o'chirish
+                from common.models import Payment, SaleItem
+                Payment.objects.filter(sale__in=paid_sales).delete()
+                SaleItem.objects.filter(sale__in=paid_sales).delete()
+                
+                # Sotuvlarni o'chirish
+                paid_sales.delete()
+
+            # Kassani nolga tushirish
+            self.total_cash = 0
+            self.total_card = 0
+            self.total_sales = 0
+            self.opened_at = timezone.now()
+            self.save()
+            
+            print(f"Kassa #{self.id} muvaffaqiyatli reset qilindi!")
+            print(f"O'chirilgan sotuvlar: {reset_count} ta")
+            print(f"Qaytarilgan mahsulotlar: {len(returned_products)} ta")
+            
+            return {
+                'reset_count': reset_count,
+                'returned_products': returned_products
+            }
+
+
+
 
 class Sale(models.Model):
     SALE_STATUS_CHOICES = [
@@ -120,6 +177,7 @@ class Sale(models.Model):
         ('partial', 'Qisman to\'langan'),
         ('cancelled', 'Bekor qilingan'),
     ]
+    cash_register = models.ForeignKey(CashRegister, on_delete=models.CASCADE, null=True, related_name='cash')
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, related_name='sales')
     client_full_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Mijoz ismi")
     client_phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Telefon raqami")

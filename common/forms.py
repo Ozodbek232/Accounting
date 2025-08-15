@@ -163,4 +163,44 @@ class ProductForm(forms.ModelForm):
         }
 
 
+class CashRegisterForm(forms.ModelForm):
+    class Meta:
+        model = models.CashRegister
+        fields = ["user", "total_cash", "total_card", "total_sales", "opened_at"]
+        widgets = {
+            "total_cash": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                }
+            ),
+            "user": forms.Select(
+                attrs={
+                    "class": "form-control",
+                    "id": "kt_select2_2",
+                }
+            ),
+            "total_card": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                }
+            ),
+            "total_sales": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                }
+            ),
+            "opened_at": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "type": "date"
+                }
+            ),
+            "closed_at": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "type": "date"
+                }
+            ),
+        }
+
 

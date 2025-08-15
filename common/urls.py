@@ -6,6 +6,7 @@ app_name = "common"
 
 
 urlpatterns = [
+
     path('manager/user-list/', views.CustomUserListView.as_view(), name='user-list'),
     path('manager/user-create/', views.CustomUserCreateView.as_view(), name='user-create'),
     path('manager/user/<int:pk>/update', views.CustomUserUpdateView.as_view(), name='user-update'),
@@ -32,11 +33,12 @@ urlpatterns = [
     path("manager/product/create/", views.ProductCreateView.as_view(), name="product-create"),
     path("manager/product/<int:pk>update/", views.ProductUpdateView.as_view(), name="product-update"),
     path("manager/product/<int:pk>delete/", views.ProductDeleteView.as_view(), name="product-delete"),
-
     
-    # Asosiy sahifalar
+    path("manager/cash/create/", views.CashRegisterCreateView.as_view(), name="cash-create" ),
+    path("manager/cash/list/", views.CashRegisterListView.as_view(), name="cash-list" ),
+    path("manager/cash/<int:pk>/update/", views.CashRegisterUpdateView.as_view(), name="cash-update" ),
     path('search-products/', views.search_products, name='search_products'),
-
+    path('cash-register/<int:register_id>/reset/', views.reset_cash_register, name='cash-reset'),
     # Sotuvlar
     path('credit/sale/', views.credit_sale, name='sale_credit'),  # Yangi sotuv saqlash
     path('sale/create/', views.sale, name='sale-create'),  # Yangi sotuv saqlash
